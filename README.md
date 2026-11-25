@@ -78,13 +78,13 @@ motto: "Always looking to optimize code and take on new challenges!"
 ### 📫 Let's Connect!
 
 <div align="center">
-  <a href="mailto:YOUR_EMAIL@example.com">
+  <a href="mailto:hadih62005@Outlook.com">
     <img src="https://img.shields.io/badge/Email_Me-EA4335?style=for-the-badge&logo=gmail&logoColor=white" alt="Email" />
   </a>
-  <a href="https://linkedin.com/in/YOUR_LINKEDIN">
+  <a href="https://linkedin.com/in/hadihhaidar">
     <img src="https://img.shields.io/badge/LinkedIn-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn" />
   </a>
-  <a href="https://github.com/YOUR_GITHUB_USERNAME?tab=repositories">
+  <a href="https://github.com/hadihaith?tab=repositories">
     <img src="https://img.shields.io/badge/Explore_My_Repos-181717?style=for-the-badge&logo=github&logoColor=white" alt="Repos" />
   </a>
 </div>
