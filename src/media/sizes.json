@@ -1,0 +1,134 @@
+{
+  "aix-cheque-1280": [
+    1280,
+    960
+  ],
+  "aix-cheque-640": [
+    640,
+    480
+  ],
+  "aix-team-1280": [
+    1152,
+    1536
+  ],
+  "aix-team-640": [
+    640,
+    854
+  ],
+  "chamoun-1-1280": [
+    1280,
+    1148
+  ],
+  "chamoun-1-640": [
+    640,
+    574
+  ],
+  "chamoun-2-1280": [
+    1280,
+    960
+  ],
+  "chamoun-2-640": [
+    640,
+    480
+  ],
+  "francophonie-podium-1280": [
+    800,
+    1066
+  ],
+  "francophonie-podium-640": [
+    640,
+    852
+  ],
+  "francophonie-venue-640": [
+    480,
+    854
+  ],
+  "french-embassy-640": [
+    480,
+    884
+  ],
+  "french-embassy-plaque-640": [
+    480,
+    854
+  ],
+  "french-embassy-portrait-640": [
+    480,
+    854
+  ],
+  "french-festival-1280": [
+    800,
+    1066
+  ],
+  "french-festival-640": [
+    640,
+    852
+  ],
+  "french-sep-1280": [
+    1280,
+    1690
+  ],
+  "french-sep-640": [
+    640,
+    846
+  ],
+  "lebanese-1280": [
+    800,
+    1066
+  ],
+  "lebanese-640": [
+    640,
+    852
+  ],
+  "logo-baims": [
+    200,
+    200
+  ],
+  "logo-dlc": [
+    200,
+    200
+  ],
+  "logo-ku": [
+    200,
+    200
+  ],
+  "mexican-1280": [
+    800,
+    1066
+  ],
+  "mexican-640": [
+    640,
+    852
+  ],
+  "rennes-campus-1280": [
+    1280,
+    854
+  ],
+  "rennes-campus-640": [
+    640,
+    426
+  ],
+  "rennes-friends-1280": [
+    800,
+    1066
+  ],
+  "rennes-friends-640": [
+    640,
+    852
+  ],
+  "rennes-trip-1280": [
+    1280,
+    960
+  ],
+  "rennes-trip-640": [
+    640,
+    480
+  ],
+  "swiss-1280": [
+    800,
+    1066
+  ],
+  "swiss-640": [
+    640,
+    852
+  ]
+}
