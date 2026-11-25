@@ -70,7 +70,7 @@ motto: "Always looking to optimize code and take on new challenges!"
 </div>
 
 <div align="center">
-  <img src="https://streak-stats.demolab.com?user=YOUR_GITHUB_USERNAME&theme=tokyonight&hide_border=true" alt="GitHub Streak" />
+  <img src="https://streak-stats.demolab.com?user=hadihaith&theme=tokyonight&hide_border=true" alt="GitHub Streak" />
 </div>
 
 ---
