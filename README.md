@@ -11,8 +11,8 @@
 </div>
 
 <p align="center">
-  <img src="https://komarev.com/ghpvc/?username=YOUR_GITHUB_USERNAME&label=Profile%20Views&color=0e75b6&style=for-the-badge" alt="Profile Views" />
-  <img src="https://img.shields.io/github/followers/YOUR_GITHUB_USERNAME?label=Followers&style=for-the-badge&color=238636" alt="Followers" />
+  <img src="https://komarev.com/ghpvc/?username=hadihaith&label=Profile%20Views&color=0e75b6&style=for-the-badge" alt="Profile Views" />
+  <img src="https://img.shields.io/github/followers/hadihaith?label=Followers&style=for-the-badge&color=238636" alt="Followers" />
 </p>
 
 ---
