@@ -5,7 +5,7 @@ import { releaseEntrance, useEntered } from '../engine/hooks'
 import { onScrollFrame, scrollToHash, subscribe } from '../engine/ticker'
 import { Brackets, Chamfer } from '../components/Shared'
 import PixelIcon from '../components/PixelIcon'
-import { LINKS, PROJECTS } from '../data'
+import { CERTS, LINKS, PROJECTS } from '../data'
 import Masthead from '../components/Masthead'
 import { follow } from '../router'
 import { backpack, swap } from '../pixels'
@@ -123,7 +123,12 @@ function Scene({ onReady, sectionRef, boxRef }: { onReady: () => void; sectionRe
       return
     }
     sceneRef.current = scene
-    scene.onReady = onReady
+    // A slow or stalled GPU must never hold the page hostage behind the veil.
+    const backstop = window.setTimeout(onReady, 4000)
+    scene.onReady = () => {
+      clearTimeout(backstop)
+      onReady()
+    }
     scene.onError = () => {
       setFailed(true)
       onReady()
@@ -223,6 +228,7 @@ function Scene({ onReady, sectionRef, boxRef }: { onReady: () => void; sectionRe
     sync()
 
     return () => {
+      clearTimeout(backstop)
       unsub?.()
       offScroll()
       ro.disconnect()
@@ -268,7 +274,7 @@ export default function Hero() {
   ]
   const stats = [
     { label: 'builds', value: String(PROJECTS.length) },
-    { label: 'certs', value: '9' },
+    { label: 'certs', value: String(CERTS.length) },
     { label: 'ai+x', value: '3rd' },
   ]
 

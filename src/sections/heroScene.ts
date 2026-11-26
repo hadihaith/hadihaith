@@ -443,7 +443,10 @@ export class HeroScene {
       this.finishProgram()
       done()
     }
-    poll()
+    // Never poll synchronously: without the extension (iOS Safari, many phones)
+    // the first poll completes at once, inside the constructor, before the
+    // caller has attached onReady, and the veil would wait forever.
+    queueMicrotask(poll)
   }
 
   private finishProgram() {
