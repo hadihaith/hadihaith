@@ -4,6 +4,7 @@ import * as px from './pixels'
 
 export const LINKS = {
   github: 'https://github.com/hadihaith',
+  email: 'hadih62005@outlook.com',
 }
 
 /** '/route' links are pages; plain '#anchor' links are sections of the home page. */

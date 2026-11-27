@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Arrow } from './Shared'
 import { SHEET, Spring } from '../engine/spring'
-import { lenis } from '../engine/ticker'
+import { lenis, reducedMotion } from '../engine/ticker'
 
 export type Slide = {
   key: string
@@ -38,7 +38,7 @@ export default function Viewer({
   useEffect(() => {
     const el = root.current!
     const s = new Spring(0, SHEET, (v) => (el.style.opacity = String(v)))
-    s.to(1)
+    if (!reducedMotion) s.to(1)
     const before = document.activeElement as HTMLElement | null
     lenis?.stop()
     document.documentElement.classList.add('locked')
@@ -54,21 +54,23 @@ export default function Viewer({
       lenis?.start()
       document.documentElement.classList.remove('locked')
       window.removeEventListener('keydown', onKey)
-      before?.focus()
+      before?.focus({ preventScroll: true })
     }
   }, [onClose, step])
 
   // Warm the neighbours so stepping through is instant.
   useEffect(() => {
-    for (const d of [1, -1]) {
+    if (n < 2) return
+    for (const d of n === 2 ? [1] : [1, -1]) {
       const img = new Image()
+      img.fetchPriority = 'low'
       img.src = slides[(i + d + n) % n].src
     }
   }, [i, slides, n])
 
   const current = slides[i]
   return createPortal(
-    <div ref={root} className="viewer" role="dialog" aria-modal="true" aria-label={title} style={{ opacity: 0 }} onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div ref={root} className="viewer" role="dialog" aria-modal="true" aria-label={title} style={{ opacity: reducedMotion ? 1 : 0 }} onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="viewer-top">
         <p className="viewer-title">
           {title}

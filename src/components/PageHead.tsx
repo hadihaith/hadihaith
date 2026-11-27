@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { Rise, Split } from '../engine/Reveal'
 import { FIGURE, REVEAL } from '../engine/spring'
 import Masthead from './Masthead'
@@ -16,16 +15,12 @@ type Props = {
 
 /** The light opening block of the journey and gallery pages, in the hero's language. */
 export default function PageHead({ title, intro, panel, longTitle, figure }: Props) {
-  useEffect(() => {
-    // Opened directly, there is no hero veil to hand over to: lift the boot veil now.
-    document.getElementById('boot-veil')?.remove()
-  }, [])
   return (
     <section className="page-head" aria-labelledby="page-title">
       <Contours token="--surface-soft" />
       <div className="page-head-column">
-        <Masthead enabled />
-        <div className="page-head-middle">
+        <Masthead />
+        <div className={`page-head-middle${longTitle ? ' page-head-long' : ''}`}>
           <h1 id="page-title" className={`page-title${longTitle ? ' page-title-long' : ''}`}>
             <Split text={title[0]} delay={120} mode="once" enabled />
             <span className="title-last">
@@ -55,7 +50,7 @@ export default function PageHead({ title, intro, panel, longTitle, figure }: Pro
           </Rise>
         </div>
       </div>
-      <span id="page-content" />
+      <span id="page-content" tabIndex={-1} />
     </section>
   )
 }

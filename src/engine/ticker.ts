@@ -16,7 +16,7 @@ let raf = 0
 let timer = 0
 
 const schedule = (now: number) => {
-  if (!subs.size) return
+  if (!subs.size || document.hidden) return
   let due = Infinity
   for (const s of subs) due = Math.min(due, s.last + s.rate())
   const wait = due - now
@@ -36,12 +36,22 @@ const loop = (time: number) => {
 }
 
 const wake = () => {
+  if (document.hidden) return
   if (timer) {
     clearTimeout(timer)
     timer = 0
   }
   if (!raf) raf = requestAnimationFrame(loop)
 }
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && subs.size) wake()
+  else {
+    cancelAnimationFrame(raf)
+    clearTimeout(timer)
+    raf = timer = 0
+  }
+})
 
 export const subscribe = (cb: (time: number) => void, rate: () => number = () => 0) => {
   const s: Sub = { cb, rate, last: -Infinity }
@@ -83,30 +93,9 @@ export const wakeLenis = () => {
   })
 }
 if (lenis) {
-  for (const type of ['wheel', 'touchstart', 'keydown', 'pointerdown', 'scroll'] as const)
-    window.addEventListener(type, wakeLenis, { passive: true, capture: true })
-  wakeLenis()
+  window.addEventListener('wheel', wakeLenis, { passive: true, capture: true })
 }
 if (import.meta.env.DEV) (window as unknown as { __lenis: Lenis | null }).__lenis = lenis
-
-export const scrollToHash = (hash: string): void => {
-  const el = document.querySelector(hash) as HTMLElement | null
-  if (!el) {
-    // The lower blocks render on idle; a click that beats them waits for the target.
-    const mo = new MutationObserver(() => {
-      if (!document.querySelector(hash)) return
-      mo.disconnect()
-      scrollToHash(hash)
-    })
-    mo.observe(document.body, { childList: true, subtree: true })
-    setTimeout(() => mo.disconnect(), 4000)
-    return
-  }
-  if (lenis) {
-    wakeLenis()
-    lenis.scrollTo(el, { offset: 0 })
-  } else el.scrollIntoView()
-}
 
 export const CAP_60 = 1000 / 60 - 2
 export const CAP_30 = 1000 / 30 - 2

@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { lenis, scrollToHash } from './engine/ticker'
+import { lenis, wakeLenis } from './engine/ticker'
 import { ROUTES, type Route } from './routes'
 
 /**
@@ -31,15 +31,62 @@ fromOldHash()
 
 let current = read()
 // Opened at /#workshop: scroll there once home has rendered.
-let pendingAnchor: string | null = location.hash.length > 1 ? location.hash : null
+type AnchorOptions = { focus?: boolean; onFound?: (el: HTMLElement) => void }
+let pendingAnchor: { hash: string; options?: AnchorOptions } | null = location.hash.length > 1 ? { hash: location.hash } : null
+let cancelAnchor = () => {}
+const scrollToHash = (hash: string, options?: AnchorOptions) => {
+  cancelAnchor()
+  let id: string
+  try {
+    id = decodeURIComponent(hash.slice(1))
+  } catch {
+    return
+  }
+  const scroll = () => {
+    const target = document.getElementById(id)
+    if (!target) return false
+    if (options?.focus) {
+      target.tabIndex = -1
+      target.focus({ preventScroll: true })
+    }
+    const immediate = Math.abs(target.getBoundingClientRect().top) > window.innerHeight * 2
+    if (lenis && !immediate) {
+      lenis.resize()
+      wakeLenis()
+      lenis.scrollTo(target, { force: true })
+    } else target.scrollIntoView()
+    options?.onFound?.(target)
+    return true
+  }
+  if (scroll()) return
+  // Home sections load in their own chunks. Resolve the target as soon as it mounts.
+  const observer = new MutationObserver(() => {
+    if (document.getElementById(id)) {
+      cancelAnchor()
+      frame = requestAnimationFrame(() => scroll())
+    }
+  })
+  let frame = 0
+  const timeout = window.setTimeout(() => observer.disconnect(), 10000)
+  cancelAnchor = () => {
+    observer.disconnect()
+    clearTimeout(timeout)
+    cancelAnimationFrame(frame)
+  }
+  observer.observe(document.getElementById('root')!, { childList: true, subtree: true })
+}
 const listeners = new Set<() => void>()
 const go = (next: Route) => {
   if (next === current) return false
+  cancelAnchor()
   current = next
   listeners.forEach((l) => l())
   return true
 }
-window.addEventListener('popstate', () => go(read()))
+window.addEventListener('popstate', () => {
+  pendingAnchor = location.hash.length > 1 ? { hash: location.hash } : null
+  if (!go(read())) landed()
+})
 window.addEventListener('hashchange', () => fromOldHash() && go(read()))
 
 export const useRoute = () =>
@@ -56,9 +103,12 @@ export const landed = () => {
   if (pendingAnchor) {
     const a = pendingAnchor
     pendingAnchor = null
-    requestAnimationFrame(() => scrollToHash(a))
-  } else if (lenis) lenis.scrollTo(0, { immediate: true, force: true })
-  else window.scrollTo(0, 0)
+    scrollToHash(a.hash, a.options)
+  } else {
+    cancelAnchor()
+    if (lenis) lenis.scrollTo(0, { immediate: true, force: true })
+    else window.scrollTo(0, 0)
+  }
 }
 
 type ClickLike = { preventDefault(): void; metaKey?: boolean; ctrlKey?: boolean; shiftKey?: boolean; altKey?: boolean; button?: number }
@@ -68,20 +118,21 @@ type ClickLike = { preventDefault(): void; metaKey?: boolean; ctrlKey?: boolean;
  * from another page goes home first, then scrolls once home has rendered.
  * Modified clicks (new tab, new window) are left to the browser.
  */
-export const follow = (href: string, e?: ClickLike) => {
+export const follow = (href: string, e?: ClickLike, options?: AnchorOptions) => {
   if (e && (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || (e.button ?? 0) !== 0)) return
   if (href.startsWith('/')) {
     e?.preventDefault()
+    pendingAnchor = null
     history.pushState(null, '', url(href))
     if (!go(read())) landed()
     return
   }
   if (href.startsWith('#')) {
     e?.preventDefault()
-    if (current === '/') scrollToHash(href)
+    if (current !== '/' || location.hash !== href) history.pushState(null, '', url(href))
+    if (current === '/') scrollToHash(href, options)
     else {
-      pendingAnchor = href
-      history.pushState(null, '', url('/'))
+      pendingAnchor = { hash: href, options }
       go('/')
     }
   }

@@ -37,16 +37,29 @@ const pageHtml = (html: string, route: Route) => {
  */
 const routePages = (): Plugin => {
   let outDir = 'dist'
+  let base = '/'
+  const pageFiles = { '/': 'Home', '/journey': 'Journey', '/certificates': 'Certificates', '/gallery': 'Gallery' }
+  const pagePreloads = new Map<Route, string>()
   return {
     name: 'route-pages',
     apply: 'build',
     configResolved(config) {
       outDir = config.build.outDir
+      base = config.base
+    },
+    generateBundle(_, bundle) {
+      for (const route of ROUTES) {
+        const chunk = Object.values(bundle).find((item) =>
+          item.type === 'chunk' && item.facadeModuleId?.endsWith(`/src/pages/${pageFiles[route]}.tsx`),
+        )
+        if (chunk) pagePreloads.set(route, `<link rel="modulepreload" crossorigin href="${attr(base + chunk.fileName)}">`)
+      }
     },
     closeBundle() {
       const index = readFileSync(join(outDir, 'index.html'), 'utf8')
       for (const route of ROUTES) {
-        const html = pageHtml(index, route)
+        const preload = pagePreloads.get(route)
+        const html = pageHtml(index, route).replace('</head>', `${preload ? `  ${preload}\n  ` : ''}</head>`)
         if (route === '/') {
           writeFileSync(join(outDir, 'index.html'), html)
           continue

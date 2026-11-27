@@ -8,6 +8,12 @@ import { GALLERY, type GalleryCard } from '../data'
 import { photo } from '../media'
 import { landed } from '../router'
 
+const CARD_SIZES = '(max-width: 639px) calc(100vw - 48px), (max-width: 1023px) 46vw, 24vw'
+const FEATURE_SIZES = [
+  '(max-width: 639px) calc(62vw - 30px), (max-width: 1023px) 58vw, 30vw',
+  '(max-width: 639px) calc(38vw - 19px), (max-width: 1023px) 36vw, 18vw',
+]
+
 function Card({ card, index, onOpen }: { card: GalleryCard; index: number; onOpen: (start: number) => void }) {
   const shown = card.feature ? card.photos.slice(0, 3) : card.photos.slice(0, 1)
   return (
@@ -21,11 +27,11 @@ function Card({ card, index, onOpen }: { card: GalleryCard; index: number; onOpe
                 <img
                   src={p.small}
                   srcSet={p.srcSet}
-                  sizes={card.feature && k === 0 ? '(max-width: 639px) 92vw, 45vw' : '(max-width: 639px) 92vw, 24vw'}
+                  sizes={card.feature ? FEATURE_SIZES[k === 0 ? 0 : 1] : CARD_SIZES}
                   width={p.w}
                   height={p.h}
                   alt={ph.caption}
-                  loading={index < 2 ? 'eager' : 'lazy'}
+                  loading="lazy"
                   decoding="async"
                 />
               </span>

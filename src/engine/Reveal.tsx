@@ -40,7 +40,7 @@ export function Split({
   const units = by === 'words' ? text.split(' ') : [...text]
   const spans = useRef<(HTMLSpanElement | null)[]>([])
   const springs = useRef<Spring[]>([])
-  const seen = useEnabled(ref, mode, '0px', enabled !== undefined)
+  const seen = useEnabled(ref, mode, '0px', reducedMotion || enabled !== undefined)
   const on = enabled ?? seen
   const rise = by === 'words' ? 0.35 : 0.3
 
@@ -120,7 +120,7 @@ export function Rise({
   ...rest
 }: RiseProps) {
   const ref = useRef<HTMLElement>(null)
-  const seen = useEnabled(ref, mode, '0px', enabled !== undefined)
+  const seen = useEnabled(ref, mode, '0px', reducedMotion || enabled !== undefined)
   const on = enabled ?? seen
   const spring = useRef<Spring | null>(null)
 

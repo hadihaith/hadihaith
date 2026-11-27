@@ -19,7 +19,6 @@ export interface SceneTier {
   maxDpr: number
   frameInterval: number
   pointerEnabled: boolean
-  trailSamples: number
   reveal: boolean
   freeze: boolean
 }
@@ -34,10 +33,9 @@ export const getSceneTier = (): SceneTier => {
     name,
     coarsePointer: coarse,
     reducedMotion,
-    maxDpr: mobile ? 1 : name === 'tablet' ? 1.25 : 1.5,
-    frameInterval: name === 'desktop' ? 0 : CAP_60,
-    pointerEnabled: !coarse && !reducedMotion,
-    trailSamples: mobile ? 28 : name === 'tablet' ? 44 : 72,
+    maxDpr: mobile ? 1 : name === 'tablet' ? 1.15 : 1.25,
+    frameInterval: mobile ? CAP_30 : CAP_60,
+    pointerEnabled: !mobile && !coarse && !reducedMotion,
     reveal: !mobile,
     freeze: reducedMotion,
   }
@@ -97,6 +95,7 @@ export const SUBJECT_BOTTOM = -0.55
 /** The LED face: 32×30 dots. */
 const LED_COLS = 32
 const LED_ROWS = 30
+const TRAIL_SAMPLES = 32
 const MESSAGE = "HI, I'M HADI ♥ FULL-STACK DEV ♥ KUWAIT ♥ "
 
 const vertex = `#version 300 es
@@ -193,7 +192,6 @@ float sdHandle(vec2 s) {
   float ring = abs(length(s - vec2(0.0, 0.55)) - 0.15) - 0.035;
   return s.y < 0.55 ? 1.0 : ring;
 }
-float sdShape(vec2 s) { return min(sdBody(s), sdHandle(s)); }
 const vec2 PANEL_C = vec2(0.0, 0.06);
 const vec2 PANEL_B = vec2(0.31, 0.29);
 float sdPanel(vec2 s) { return sdRBox(s - PANEL_C, PANEL_B, 0.05); }
@@ -225,7 +223,20 @@ void main() {
   // Subject space
   vec2 s = (pt - uCenter.xy) / uCenter.z;
   float px = 2.0 / uRes.y / uCenter.z;
-  float shape = min(sdShape(s), sdStrap(s));
+  // Most pixels only contain contours. Skip the device shading outside its bounds.
+  if (abs(s.x) > 0.51 + 2.0 * px || s.y > 0.735 + 2.0 * px || s.y < -0.55 - 2.0 * px) {
+    if (uBgReveal > 0.001 && trail > 0.0) {
+      float parity = mod(floor(scaled + 0.5), 2.0);
+      color = mix(color, vec3(mix(uBgGrey, uBgGreyAlt, parity)), trail * uBgReveal);
+    }
+    outColor = vec4(color, 1.0);
+    return;
+  }
+  float body = sdBody(s);
+  float handle = sdHandle(s);
+  float outline = min(body, handle);
+  float strap = sdStrap(s);
+  float shape = min(outline, strap);
   float inside = 1.0 - smoothstep(-px, px, shape);
 
   // Grey half of the reveal, banded by the contours' parity, outside the device.
@@ -238,8 +249,7 @@ void main() {
   // Ghost: the device as a hairline drawing, always there.
   float panel = sdPanel(s);
   float pocket = sdPocket(s);
-  float strap = sdStrap(s);
-  float hair = 1.0 - smoothstep(0.6 * px, 1.6 * px, abs(sdShape(s)));
+  float hair = 1.0 - smoothstep(0.6 * px, 1.6 * px, abs(outline));
   hair = max(hair, 1.0 - smoothstep(0.6 * px, 1.6 * px, abs(panel)));
   hair = max(hair, 1.0 - smoothstep(0.6 * px, 1.6 * px, abs(pocket)));
   hair = max(hair, 1.0 - smoothstep(0.6 * px, 1.6 * px, abs(strap)));
@@ -259,6 +269,7 @@ void main() {
   vec4 led = texture(uLed, (cellId + 0.5) / vec2(${LED_COLS}.0, ${LED_ROWS}.0));
 
   // Scan wave down the ghost's dots.
+  if (dotMask > 0.0) {
   float h01 = (s.y - ${SUBJECT_BOTTOM.toFixed(3)}) / ${(SUBJECT_TOP - SUBJECT_BOTTOM).toFixed(3)};
   float start = 1.0 + uWaveWidth * 3.0;
   float travel = 1.0 + uWaveWidth * 6.0;
@@ -272,17 +283,31 @@ void main() {
   }
   vec3 ghostDot = mix(uSteel, uAccent, wave * uWaveOpacity);
   color = mix(color, ghostDot, dotMask * (0.45 + wave * 0.4));
+  }
+
+  float intact = 0.0;
+  if (inside > 0.0 && uIntro < 1.0) {
+    float burnFront = smoothstep(uBurnStart, 1.0, uIntro);
+    float burnNoise = fbm(ndc * 3.5 + 11.0);
+    float burnHeight = 1.0 - (ndc.y * 0.5 + 0.5);
+    intact = smoothstep(burnFront - uBurnSoft, burnFront + uBurnSoft, mix(burnHeight, burnNoise, 0.45));
+  }
+  float solidAlpha = inside * max(trail, intact);
+  if (solidAlpha <= 0.0) {
+    outColor = vec4(color, 1.0);
+    return;
+  }
 
   // Solid: the lit device.
   vec2 e = vec2(0.002, 0.0);
   vec2 grad = vec2(sdBody(s + e.xy) - sdBody(s - e.xy), sdBody(s + e.yx) - sdBody(s - e.yx)) / (2.0 * e.x);
-  float bevel = smoothstep(-0.09, 0.0, sdBody(s));
+  float bevel = smoothstep(-0.09, 0.0, body);
   vec3 n = normalize(vec3(-grad * bevel * 1.6, 1.0));
   vec3 l = normalize(vec3(uLight * 1.6, 1.0));
   float lambert = max(dot(n, l), 0.0) - 0.72;
   vec3 solid = uBody * (1.0 + lambert * uRelight * 2.0);
   solid += vec3(0.05) * (1.0 - smoothstep(0.0, 0.5, length(s - vec2(uLight.x * 0.4, 0.45))));
-  float handleIn = 1.0 - smoothstep(-px, px, sdHandle(s));
+  float handleIn = 1.0 - smoothstep(-px, px, handle);
   solid = mix(solid, uRaised, handleIn);
   float strapIn = 1.0 - smoothstep(-px, px, strap);
   solid = mix(solid, uRaised, strapIn);
@@ -297,17 +322,8 @@ void main() {
   float glow = led.a * (1.0 - smoothstep(pitch * 0.2, pitch * 0.9, dotD)) * inPanel * 0.35;
   solid = mix(solid, mix(ledOff, ledOn, led.a), dotMask);
   solid += uAccent * glow;
-  float rim = 1.0 - smoothstep(0.6 * px, 1.6 * px, abs(sdShape(s)));
+  float rim = 1.0 - smoothstep(0.6 * px, 1.6 * px, abs(outline));
   solid = mix(solid, uAccent, rim * 0.35);
-
-  // Entrance burn, then the cursor trail.
-  float burnFront = smoothstep(uBurnStart, 1.0, uIntro);
-  float burnNoise = fbm(ndc * 3.5 + 11.0);
-  float burnHeight = 1.0 - (ndc.y * 0.5 + 0.5);
-  float burnAt = mix(burnHeight, burnNoise, 0.45);
-  float intact = smoothstep(burnFront - uBurnSoft, burnFront + uBurnSoft, burnAt);
-  float mask = max(trail, intact);
-  float solidAlpha = inside * mask;
   color = mix(color, solid, solidAlpha);
   float burnEdge = 4.0 * intact * (1.0 - intact);
   color += uAccent * burnEdge * uBurnGlow * 0.25 * inside;
@@ -321,7 +337,7 @@ export class HeroScene {
   private uniforms = new Map<string, WebGLUniformLocation | null>()
   private ledPixels = new Uint8Array(LED_COLS * LED_ROWS * 4)
   private ledTexture: WebGLTexture
-  private readonly samples: number
+  private readonly samples = TRAIL_SAMPLES
   private trail: Float32Array
   private params: SceneParams = { ...PARAMS }
   private pointer = { ...STATIC_POSE }
@@ -347,6 +363,7 @@ export class HeroScene {
   onReady: (() => void) | null = null
   onError: ((e: Error) => void) | null = null
   private shaders: WebGLShader[] = []
+  private buffer: WebGLBuffer | null = null
   private staticDirty = true
   private trailDirty = true
   private pointerMoving = false
@@ -358,7 +375,6 @@ export class HeroScene {
 
   constructor(private canvas: HTMLCanvasElement) {
     this.tier = getSceneTier()
-    this.samples = this.tier.trailSamples
     this.trail = new Float32Array(this.samples * 2)
     for (let i = 0; i < this.samples; i++) {
       this.trail[i * 2] = STATIC_POSE.x
@@ -392,6 +408,7 @@ export class HeroScene {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+    gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA8, LED_COLS, LED_ROWS)
     if (!this.tier.pointerEnabled) this.parkPointer()
     this.drawLed(0)
     // The compile runs in the background; once linked, one throwaway frame and we are ready.
@@ -454,6 +471,7 @@ export class HeroScene {
     const program = this.program
     gl.useProgram(program)
     const buffer = gl.createBuffer()
+    this.buffer = buffer
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW)
     const loc = gl.getAttribLocation(program, 'aPos')
@@ -510,12 +528,12 @@ export class HeroScene {
     }
     const gl = this.gl
     gl.bindTexture(gl.TEXTURE_2D, this.ledTexture)
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, LED_COLS, LED_ROWS, 0, gl.RGBA, gl.UNSIGNED_BYTE, px)
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, LED_COLS, LED_ROWS, gl.RGBA, gl.UNSIGNED_BYTE, px)
   }
 
   retune() {
     const prev = this.tier
-    this.tier = { ...getSceneTier(), trailSamples: prev.trailSamples }
+    this.tier = getSceneTier()
     if (!this.tier.pointerEnabled) this.parkPointer()
     else if (!prev.pointerEnabled) this.pointerSeen = false
     if (!this.tier.freeze) this.settled = false
@@ -558,11 +576,14 @@ export class HeroScene {
   }
 
   resize(width: number, height: number) {
-    const dpr = Math.min(window.devicePixelRatio || 1, this.tier.maxDpr)
     this.width = Math.max(1, width)
     this.height = Math.max(1, height)
-    this.canvas.width = Math.round(this.width * dpr)
-    this.canvas.height = Math.round(this.height * dpr)
+    const pixelBudget = this.tier.name === 'mobile' ? 350_000 : this.tier.name === 'tablet' ? 800_000 : 1_500_000
+    const dpr = Math.min(window.devicePixelRatio || 1, this.tier.maxDpr, Math.sqrt(pixelBudget / (this.width * this.height)))
+    const w = Math.max(1, Math.floor(this.width * dpr))
+    const h = Math.max(1, Math.floor(this.height * dpr))
+    if (this.canvas.width !== w) this.canvas.width = w
+    if (this.canvas.height !== h) this.canvas.height = h
     this.gl.viewport(0, 0, this.canvas.width, this.canvas.height)
     this.staticDirty = true
     this.settled = false
@@ -587,13 +608,14 @@ export class HeroScene {
     const revealOn = this.tier.reveal && this.tier.pointerEnabled
     const target = revealOn ? Math.min(1, step / p.pacePeak) : 0
     this.pace += (target - this.pace) * (target > this.pace ? p.paceAttack : p.paceRelease)
-    this.lastSmoothed = { ...this.smoothed }
+    this.lastSmoothed.x = this.smoothed.x
+    this.lastSmoothed.y = this.smoothed.y
 
     this.trail.copyWithin(2, 0, (this.samples - 1) * 2)
     this.trail[0] = this.smoothed.x
     this.trail[1] = -this.smoothed.y
 
-    this.drawLed(t)
+    if (this.intro < 1 || this.pace > p.paceThreshold) this.drawLed(t)
     this.render(t)
   }
 
@@ -698,13 +720,15 @@ export class HeroScene {
     return busy ? this.tier.frameInterval : CAP_30
   }
 
-  get isSettled() {
-    return this.settled
-  }
-
   dispose() {
-    // No loseContext(): the canvas outlives a StrictMode remount, and a lost
-    // context would come back to the next scene built on it.
+    if (this.disposed) return
     this.disposed = true
+    clearTimeout(this.pointerTimer)
+    const gl = this.gl
+    gl.useProgram(null)
+    gl.deleteBuffer(this.buffer)
+    gl.deleteTexture(this.ledTexture)
+    gl.deleteProgram(this.program)
+    for (const shader of this.shaders) gl.deleteShader(shader)
   }
 }

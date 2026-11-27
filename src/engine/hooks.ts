@@ -4,6 +4,28 @@ import { Spring, TRIGGER } from './spring'
 
 export type Mode = 'always' | 'once' | 'forward'
 
+const gates = new Map<string, { io: IntersectionObserver; callbacks: Map<Element, (entry: IntersectionObserverEntry) => void> }>()
+
+function observeGate(el: Element, rootMargin: string, callback: (entry: IntersectionObserverEntry) => void) {
+  let gate = gates.get(rootMargin)
+  if (!gate) {
+    const callbacks = new Map<Element, (entry: IntersectionObserverEntry) => void>()
+    const io = new IntersectionObserver((entries) => {
+      for (const entry of entries) callbacks.get(entry.target)?.(entry)
+    }, { rootMargin })
+    gate = { io, callbacks }
+    gates.set(rootMargin, gate)
+  }
+  const { io, callbacks } = gate
+  callbacks.set(el, callback)
+  io.observe(el)
+  return () => {
+    callbacks.delete(el)
+    io.unobserve(el)
+    if (!callbacks.size && gates.get(rootMargin) === gate) gates.delete(rootMargin)
+  }
+}
+
 /**
  * The in-view gate. `once` latches, `forward` holds while the element is
  * above the viewport (scrolled past) and only resets when it drops below it.
@@ -13,18 +35,13 @@ export function useEnabled(ref: React.RefObject<Element | null>, mode: Mode = 'f
   useEffect(() => {
     const el = ref.current
     if (!el || skip) return
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) setOn(true)
-        else if (mode === 'once') return
-        else if (mode === 'forward' && entry.boundingClientRect.top <= 0) setOn(true)
-        else setOn(false)
-        if (entry.isIntersecting && mode === 'once') io.disconnect()
-      },
-      { rootMargin },
-    )
-    io.observe(el)
-    return () => io.disconnect()
+    const stop = observeGate(el, rootMargin, (entry) => {
+      if (entry.isIntersecting || (mode === 'forward' && entry.boundingClientRect.bottom <= 0)) {
+        setOn(true)
+        if (mode === 'once') stop()
+      } else if (mode !== 'once') setOn(false)
+    })
+    return stop
   }, [ref, mode, rootMargin, skip])
   return on
 }
@@ -62,12 +79,13 @@ export function useScrub(
   end: Pose,
   onProgress: (p: number) => void,
   smooth = false,
+  enabled = true,
 ) {
   const cb = useRef(onProgress)
   cb.current = onProgress
   useEffect(() => {
     const el = ref.current
-    if (!el) return
+    if (!el || !enabled) return
     const spring = smooth ? new Spring(0, TRIGGER, (v) => cb.current(v)) : null
     let last = -1
     let inView = false
@@ -90,7 +108,7 @@ export function useScrub(
       io.disconnect()
       spring?.stop()
     }
-  }, [ref, start, end, smooth])
+  }, [ref, start, end, smooth, enabled])
 }
 
 /**
@@ -124,22 +142,6 @@ export function useVisibleLoop(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ref, enabled])
 }
-
-/* ---------- The hero's entrance, released by the loading veil ---------- */
-let entered = false
-const listeners = new Set<() => void>()
-export const releaseEntrance = () => {
-  entered = true
-  listeners.forEach((l) => l())
-}
-export const useEntered = () =>
-  useSyncExternalStore(
-    (l) => {
-      listeners.add(l)
-      return () => listeners.delete(l)
-    },
-    () => entered,
-  )
 
 export const useMedia = (query: string) =>
   useSyncExternalStore(

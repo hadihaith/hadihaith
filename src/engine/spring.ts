@@ -13,12 +13,7 @@ export const YEAR = { tension: 190, friction: 24 }
 export const COPY = { tension: 110, friction: 26 }
 export const COPY_FAST = { tension: 150, friction: 24 }
 export const NAME = { tension: 190, friction: 24 }
-// Template value {70, 24} is overdamped: its tail holds the page under the veil ~1.6s. This lands it near critical.
-export const VEIL = { tension: 110, friction: 24 }
-export const CLEAR = { tension: 140, friction: 26 }
 export const LABEL = { tension: 110, friction: 26 }
-export const WAITING = { tension: 10, friction: 30 }
-export const READY = { tension: 170, friction: 26 }
 export const YEAR_SETTLE = { tension: 32, friction: 26 }
 export const TRIGGER = { tension: 140, friction: 30 }
 

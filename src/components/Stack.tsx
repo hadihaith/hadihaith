@@ -1,9 +1,6 @@
 import { Children, useEffect, useRef, useState } from 'react'
 import { onScrollFrame } from '../engine/ticker'
 
-const idle = (cb: () => void) =>
-  typeof requestIdleCallback === 'function' ? requestIdleCallback(cb, { timeout: 1500 }) : setTimeout(cb, 200)
-
 /**
  * Renders its children on the first idle moment after the first screen, with
  * a same-coloured placeholder until then: the hero's first render only builds
@@ -11,7 +8,15 @@ const idle = (cb: () => void) =>
  */
 export function Deferred({ children, placeholder }: { children: React.ReactNode; placeholder: string }) {
   const [ready, setReady] = useState(false)
-  useEffect(() => void idle(() => setReady(true)), [])
+  useEffect(() => {
+    const show = () => setReady(true)
+    if (typeof requestIdleCallback === 'function') {
+      const id = requestIdleCallback(show, { timeout: 500 })
+      return () => cancelIdleCallback(id)
+    }
+    const id = window.setTimeout(show, 100)
+    return () => clearTimeout(id)
+  }, [])
   return ready ? <>{children}</> : <div className={placeholder} aria-hidden="true" />
 }
 
@@ -53,11 +58,12 @@ export function Stack({ children }: { children: React.ReactNode }) {
         if (item.top !== top) item.layer.style.top = item.top = top
         const p = progress[i]
         if (p === item.p) return
-        // The layer is promoted up front in CSS: promoting it the moment it
-        // starts to scale costs a dropped frame in the middle of the scroll.
-        item.inner.style.transform = p > 0 && shrink > 0 ? `scale(${1 - shrink * p})` : ''
+        item.inner.style.transform = p > 0 && p < 1 && shrink > 0 ? `scale(${1 - shrink * p})` : ''
         item.shade.style.opacity = `${RECEDE_SHADE * p}`
-        if (p >= 1 !== item.p >= 1 || item.p < 0) item.inner.style.visibility = p >= 1 ? 'hidden' : 'visible'
+        if (p >= 1 !== item.p >= 1 || item.p < 0) {
+          item.inner.style.visibility = p >= 1 ? 'hidden' : 'visible'
+          item.inner.inert = p >= 1
+        }
         item.p = p
       })
     }

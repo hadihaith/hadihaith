@@ -50,13 +50,13 @@ function PlateMediaView({ media }: { media: PlateMedia }) {
 }
 
 /** A stepped-corner plate holding a photograph, a logo or an LED screen. */
-function Plate({ entry }: { entry: TimelineEntry }) {
+function Plate({ entry, column }: { entry: TimelineEntry; column: boolean }) {
   const slot = useRef<HTMLDivElement>(null)
   const inner = useRef<HTMLDivElement>(null)
   useScrub(slot, 'top_bottom', 'top_center', (p) => {
     // From top: -10% down to 0, as a transform (no relayout): 10p% of the slot is 10p/1.1% of the 110%-tall media.
     if (inner.current) inner.current.style.transform = `translate3d(0, ${((10 * p) / 1.1).toFixed(3)}%, 0)`
-  })
+  }, false, !column && !reducedMotion)
   return (
     <div className="tl-plate">
       <div ref={slot} className="tl-plate-fill" style={{ clipPath: 'url(#plate-clip)' }}>
@@ -71,10 +71,9 @@ function Plate({ entry }: { entry: TimelineEntry }) {
   )
 }
 
-function Year({ text, centre, enabled }: { text: string; centre: boolean; enabled: boolean }) {
+function Year({ text, centre, enabled, column }: { text: string; centre: boolean; enabled: boolean; column: boolean }) {
   const ref = useRef<HTMLSpanElement>(null)
   // On phones the year is a label above its plate, not a backdrop behind it: it stays at full strength.
-  const column = useMedia('(max-width: 639px)')
   useEffect(() => {
     if (column) {
       if (ref.current) ref.current.style.opacity = ''
@@ -87,15 +86,14 @@ function Year({ text, centre, enabled }: { text: string; centre: boolean; enable
   }, [enabled, centre, column])
   return (
     <span ref={ref} className="tl-year-inner">
-      <Split text={text} by="letters" stagger={26} config={YEAR} enabled={enabled} />
+      {column ? text : <Split text={text} by="letters" stagger={26} config={YEAR} enabled={enabled} />}
     </span>
   )
 }
 
-function Row({ entry, index, hovered, setHovered }: { entry: TimelineEntry; index: number; hovered: number | null; setHovered: (i: number | null) => void }) {
+function Row({ entry, index, hovered, setHovered, column }: { entry: TimelineEntry; index: number; hovered: number | null; setHovered: (i: number | null) => void; column: boolean }) {
   const ref = useRef<HTMLLIElement>(null)
   const seen = useEnabled(ref, 'once', '0% 0% -25% 0%')
-  const column = useMedia('(max-width: 639px)')
   const centre = entry.frame !== 'side'
   const travel = PARALLAX.plate[entry.frame]
   const side = centre ? 'centre' : entry.align === 'left' ? 'left' : 'right'
@@ -113,10 +111,10 @@ function Row({ entry, index, hovered, setHovered }: { entry: TimelineEntry; inde
           onPointerEnter={() => window.matchMedia('(hover: hover)').matches && setHovered(index)}
           onPointerLeave={() => setHovered(null)}
         >
-          <Plate entry={entry} />
+          <Plate entry={entry} column={column} />
         </div>
         <span className="tl-year">
-          <Year text={entry.year} centre={centre} enabled={seen} />
+          <Year text={entry.year} centre={centre} enabled={seen} column={column} />
         </span>
       </Parallax>
       {centre && entry.copy && (
@@ -206,6 +204,7 @@ export default function Timeline({ entries, heading }: { entries: TimelineEntry[
   const wrap = useRef<HTMLDivElement>(null)
   const list = useRef<HTMLOListElement>(null)
   const [hovered, setHovered] = useState<number | null>(null)
+  const column = useMedia('(max-width: 639px)')
   return (
     <section className="timeline" id="journey" aria-labelledby="journey-title">
       <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
@@ -215,7 +214,7 @@ export default function Timeline({ entries, heading }: { entries: TimelineEntry[
       </svg>
       <Chequer carry="light" className="chequer-timeline" />
       <div ref={wrap} className="tl-wrap">
-        <Rail wrapRef={wrap} lastRef={list} />
+        {!column && <Rail wrapRef={wrap} lastRef={list} />}
         <h2 id="journey-title" className="tl-title">
           <Split text={heading[0]} delay={0} />
           <span className="title-last">
@@ -227,7 +226,7 @@ export default function Timeline({ entries, heading }: { entries: TimelineEntry[
         </h2>
         <ol ref={list} className="tl-rows">
           {entries.map((entry, i) => (
-            <Row key={entry.year} entry={entry} index={i} hovered={hovered} setHovered={setHovered} />
+            <Row key={entry.year} entry={entry} index={i} hovered={hovered} setHovered={setHovered} column={column} />
           ))}
         </ol>
       </div>

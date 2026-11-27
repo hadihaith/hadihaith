@@ -87,12 +87,12 @@ function Sheet({ onClose }: { onClose: () => void }) {
 }
 
 /** The site's masthead: logo, the nav on the page's centre line, GitHub, and the menu below xl. */
-export default function Masthead({ enabled }: { enabled?: boolean }) {
+export default function Masthead() {
   const [menu, setMenu] = useState(false)
   const route = useRoute()
   return (
     <>
-      <Rise as="header" className="masthead" enabled={enabled} delay={0} y="1.25rem">
+      <header className="masthead">
         <Logo />
         <nav className="masthead-nav" aria-label="Primary">
           <ul>
@@ -112,7 +112,7 @@ export default function Masthead({ enabled }: { enabled?: boolean }) {
           <span />
           <span />
         </button>
-      </Rise>
+      </header>
       {menu && <Sheet onClose={() => setMenu(false)} />}
     </>
   )

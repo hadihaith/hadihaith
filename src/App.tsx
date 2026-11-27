@@ -1,18 +1,18 @@
 import { Suspense, lazy, useEffect } from 'react'
-import Home from './pages/Home'
-import { useRoute } from './router'
+import { follow, useRoute } from './router'
 import { PAGE_META, canonical } from './routes'
 
-// The other pages are their own chunks: the home page never pays for them.
+const Home = lazy(() => import('./pages/Home'))
 const Journey = lazy(() => import('./pages/Journey'))
 const Gallery = lazy(() => import('./pages/Gallery'))
 const Certificates = lazy(() => import('./pages/Certificates'))
 
-const PAGES = { '/journey': Journey, '/certificates': Certificates, '/gallery': Gallery }
+const PAGES = { '/': Home, '/journey': Journey, '/certificates': Certificates, '/gallery': Gallery }
 
 export default function App() {
   const route = useRoute()
-  const Page = route === '/' ? null : PAGES[route]
+  const Page = PAGES[route]
+  const skipTarget = route === '/' ? '#season' : '#page-content'
 
   // The title, description and canonical URL follow the page, matching what the build wrote into its HTML.
   useEffect(() => {
@@ -22,29 +22,15 @@ export default function App() {
     document.querySelector('link[rel="canonical"]')?.setAttribute('href', canonical(route))
   }, [route])
 
-  useEffect(() => {
-    // Above 1920 the root keeps scaling: a rem stays one design pixel of the 1920 band.
-    const onResize = () => {
-      document.documentElement.style.fontSize = window.innerWidth > 1920 ? `${(16 * window.innerWidth) / 1920}px` : ''
-    }
-    onResize()
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [])
-
   return (
     <>
-      <a className="skip" href={route === '/' ? '#season' : '#page-content'}>
+      <a className="skip" href={skipTarget} onClick={route === '/' ? (e) => follow(skipTarget, e, { focus: true }) : undefined}>
         Skip to content
       </a>
       <main id="main" tabIndex={-1} key={route}>
-        {Page ? (
-          <Suspense fallback={<div className="placeholder-light" aria-hidden="true" />}>
-            <Page />
-          </Suspense>
-        ) : (
-          <Home />
-        )}
+        <Suspense fallback={<div className="placeholder-light" aria-hidden="true" />}>
+          <Page />
+        </Suspense>
       </main>
     </>
   )

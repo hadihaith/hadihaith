@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
 import { Rise, Split } from '../engine/Reveal'
 import { Arrow, Brackets, Chamfer, Chequer, Contours } from '../components/Shared'
 import PixelIcon from '../components/PixelIcon'
@@ -69,17 +69,18 @@ export default function Workshop() {
   const [flash, setFlash] = useState<string | null>(null)
 
   // "Play a round" in the hero points here: light up the card it lands on.
-  useEffect(() => {
+  useLayoutEffect(() => {
     let timer = 0
     const onSelect = (e: Event) => {
-      setFlash((e as CustomEvent<string>).detail)
+      const card = e.target as HTMLElement
+      setFlash(card.id)
       clearTimeout(timer)
       timer = window.setTimeout(() => setFlash(null), 1800)
     }
-    window.addEventListener('workshop:select', onSelect)
+    window.addEventListener('project:highlight', onSelect)
     return () => {
       clearTimeout(timer)
-      window.removeEventListener('workshop:select', onSelect)
+      window.removeEventListener('project:highlight', onSelect)
     }
   }, [])
 
@@ -105,7 +106,7 @@ export default function Workshop() {
 
       <ul className="ws-grid">
         {PROJECTS.map((p, i) => (
-          <ProjectCard key={p.id} project={p} index={i} flash={flash === p.id} />
+          <ProjectCard key={p.id} project={p} index={i} flash={flash === `project-${p.id}`} />
         ))}
       </ul>
     </section>

@@ -71,6 +71,7 @@ export default function Footer() {
         <Chamfer href={LINKS.github} label="github profile" w={275} cut={8.835} variant="hollow" className="ft-cta" external />
       </Rise>
       <Rise as="ul" className="ft-socials" delay={800}>
+        <li className="ft-email"><a href={`mailto:${LINKS.email}`}>{LINKS.email}</a></li>
         <li>
           <a href={LINKS.github} target="_blank" rel="noreferrer">github</a>
         </li>

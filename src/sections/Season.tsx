@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Rise, Split } from '../engine/Reveal'
-import { COPY_FAST, REVEAL, Spring, TYPE, easeInOutSine, easeOutCubic, easeOutQuad } from '../engine/spring'
+import { COPY_FAST, REVEAL, TYPE, easeInOutSine, easeOutCubic, easeOutQuad } from '../engine/spring'
 import { useMedia, useVisibleLoop } from '../engine/hooks'
 import { CAP_30, reducedMotion, subscribe } from '../engine/ticker'
 import { Arrow, Chequer, readToken } from '../components/Shared'
@@ -117,21 +117,30 @@ function Halftone(props: { armed: boolean; sectionRef: React.RefObject<HTMLEleme
   useEffect(() => {
     const el = probe.current
     if (!el) return
-    const idle = (cb: () => void) =>
-      typeof requestIdleCallback === 'function' ? requestIdleCallback(cb, { timeout: 1200 }) : setTimeout(cb, 1)
+    let cancelIdle = () => {}
     const io = new IntersectionObserver(
       ([e]) => {
         if (!e.isIntersecting) return
         io.disconnect()
-        idle(() => {
+        const load = () => {
           DOTS = getDots()
           setReady(true)
-        })
+        }
+        if (typeof requestIdleCallback === 'function') {
+          const id = requestIdleCallback(load, { timeout: 600 })
+          cancelIdle = () => cancelIdleCallback(id)
+        } else {
+          const id = window.setTimeout(load, 0)
+          cancelIdle = () => clearTimeout(id)
+        }
       },
       { rootMargin: '100% 0px' },
     )
     io.observe(el)
-    return () => io.disconnect()
+    return () => {
+      io.disconnect()
+      cancelIdle()
+    }
   }, [])
   return ready ? <HalftoneField {...props} /> : <div ref={probe} className="halftone" aria-hidden="true" />
 }
@@ -140,9 +149,11 @@ function HalftoneField({ armed, sectionRef }: { armed: boolean; sectionRef: Reac
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const baked = useRef<HTMLCanvasElement | null>(null)
   const wake = useRef<() => void>(() => {})
-  const level = useRef(new Float32Array(DOTS.count))
-  const active = useRef(new Int32Array(DOTS.count))
-  const inList = useRef(new Uint8Array(DOTS.count))
+  const { level, active, inList } = useMemo(() => ({
+    level: new Float32Array(DOTS.count),
+    active: new Int32Array(DOTS.count),
+    inList: new Uint8Array(DOTS.count),
+  }), [])
   const activeCount = useRef(0)
   const pointer = useRef({ x: 0, y: 0, heat: 0 })
   const target = useRef({ x: 0, y: 0, on: false })
@@ -175,20 +186,20 @@ function HalftoneField({ armed, sectionRef }: { armed: boolean; sectionRef: Reac
     c.setTransform(scale, 0, 0, scale, 0, 0)
     c.drawImage(bake, 0, 0, 1440, 800)
     const { points, columns, rows } = DOTS
-    const lv = level.current, act = active.current, count = activeCount.current
+    const count = activeCount.current
     const box = DOT_RADIUS * 2 + 1
     const span = 1 - THRESHOLD
     let drew = 0
     for (let k = 0; k < count; k++) {
-      const idx = act[k]
-      if (lv[idx] < THRESHOLD) continue
+      const idx = active[k]
+      if (level[idx] < THRESHOLD) continue
       c.clearRect(points[idx * 2] - DOT_RADIUS - 0.5, points[idx * 2 + 1] - DOT_RADIUS - 0.5, box, box)
       drew++
     }
     if (!drew) return
     for (let k = 0; k < count; k++) {
-      const idx = act[k]
-      const value = lv[idx]
+      const idx = active[k]
+      const value = level[idx]
       if (value < THRESHOLD) continue
       if ((columns[idx] + rows[idx]) & 1) continue
       const t = Math.min(1, (value - THRESHOLD) / span)
@@ -196,7 +207,7 @@ function HalftoneField({ armed, sectionRef }: { armed: boolean; sectionRef: Reac
       c.fillStyle = css(value > 0.8 ? WHITE : value > 0.5 ? BRIGHT : mix(ACCENT, BRIGHT, value))
       c.fillRect(points[idx * 2] - side / 2, points[idx * 2 + 1] - side / 2, side, side)
     }
-  }, [])
+  }, [active, level])
 
   const bake = useCallback(() => {
     const canvas = canvasRef.current
@@ -204,7 +215,7 @@ function HalftoneField({ armed, sectionRef }: { armed: boolean; sectionRef: Reac
     const width = canvas.clientWidth, height = canvas.clientHeight
     if (!width || !height) return
     const coarse = window.matchMedia('(hover: none) and (pointer: coarse)').matches
-    const ratio = Math.min(window.devicePixelRatio || 1, coarse ? 1 : 2)
+    const ratio = Math.min(window.devicePixelRatio || 1, coarse ? 0.75 : 1)
     const w = Math.round(width * ratio), h = Math.round(height * ratio)
     if (canvas.width !== w || canvas.height !== h) {
       canvas.width = w
@@ -238,30 +249,25 @@ function HalftoneField({ armed, sectionRef }: { armed: boolean; sectionRef: Reac
   // Pointer: mouse only, inside the section, not on touch or under reduced motion.
   useEffect(() => {
     if (reducedMotion || window.matchMedia('(hover: none)').matches) return
+    const section = sectionRef.current
+    if (!section) return
     const onMove = (e: PointerEvent) => {
-      if (e.pointerType !== 'mouse') return
-      const canvas = canvasRef.current, section = sectionRef.current
-      if (!canvas || !section) return
-      const s = section.getBoundingClientRect()
-      const inside = e.clientX >= s.left && e.clientX <= s.right && e.clientY >= s.top && e.clientY <= s.bottom
-      const r = canvas.getBoundingClientRect()
-      target.current = {
-        x: ((e.clientX - r.left) / r.width) * 1440,
-        y: ((e.clientY - r.top) / r.height) * 800,
-        on: inside && armedRef.current,
-      }
-      if (target.current.on || pointer.current.heat > 0) wake.current()
+      if (e.pointerType !== 'mouse' || !armedRef.current) return
+      target.current.x = e.clientX
+      target.current.y = e.clientY
+      target.current.on = true
+      wake.current()
     }
     const off = () => {
       target.current.on = false
-      wake.current()
+      if (pointer.current.heat > 0 || activeCount.current > 0) wake.current()
     }
-    window.addEventListener('pointermove', onMove)
-    document.addEventListener('pointerleave', off)
+    section.addEventListener('pointermove', onMove, { passive: true })
+    section.addEventListener('pointerleave', off)
     window.addEventListener('blur', off)
     return () => {
-      window.removeEventListener('pointermove', onMove)
-      document.removeEventListener('pointerleave', off)
+      section.removeEventListener('pointermove', onMove)
+      section.removeEventListener('pointerleave', off)
       window.removeEventListener('blur', off)
     }
   }, [sectionRef])
@@ -271,11 +277,10 @@ function HalftoneField({ armed, sectionRef }: { armed: boolean; sectionRef: Reac
     const { points } = DOTS
     const add = (i: number, value: number) => {
       if (value <= MIN_LEVEL) return
-      const lv = level.current
-      if (value > lv[i]) lv[i] = value
-      if (!inList.current[i]) {
-        inList.current[i] = 1
-        active.current[activeCount.current++] = i
+      if (value > level[i]) level[i] = value
+      if (!inList[i]) {
+        inList[i] = 1
+        active[activeCount.current++] = i
       }
     }
     const addPoint = (sx: number, sy: number, heat: number, reach: number) => {
@@ -321,19 +326,22 @@ function HalftoneField({ armed, sectionRef }: { armed: boolean; sectionRef: Reac
       }
       addPoint(src.x, src.y, src.heat, RETICLE_CORE)
     }
-    const frame = () => {
-      const now = performance.now()
+    const frame = (now: number) => {
       const dt = last ? Math.min(0.1, (now - last) / 1000) : 0
       last = now
       const p = pointer.current, t = target.current
-      const wanted = t.on ? POINTER_HEAT : 0
+      const rect = t.on ? canvasRef.current?.getBoundingClientRect() : null
+      const inside = rect && t.x >= rect.left && t.x <= rect.right && t.y >= rect.top && t.y <= rect.bottom
+      const wanted = inside ? POINTER_HEAT : 0
+      const x = inside ? ((t.x - rect.left) / rect.width) * 1440 : p.x
+      const y = inside ? ((t.y - rect.top) / rect.height) * 800 : p.y
       if (p.heat <= 0.001 && wanted > 0) {
-        p.x = t.x
-        p.y = t.y
+        p.x = x
+        p.y = y
       } else if (dt > 0) {
         const px = p.x, py = p.y
-        p.x = approach(px, t.x, dt, POINTER_TRAIL)
-        p.y = approach(py, t.y, dt, POINTER_TRAIL)
+        p.x = approach(px, x, dt, POINTER_TRAIL)
+        p.y = approach(py, y, dt, POINTER_TRAIL)
         const speed = Math.hypot(p.x - px, p.y - py) / dt
         const wantedSpread = Math.max(0, 1 - speed / RETICLE_SETTLE)
         spread.current = approach(spread.current, wantedSpread, dt, wantedSpread > spread.current ? SPREAD_OPEN : SPREAD_SHUT)
@@ -345,23 +353,22 @@ function HalftoneField({ armed, sectionRef }: { armed: boolean; sectionRef: Reac
       }
       const decay = Math.exp(-dt / Math.max(0.05, FADE / 3))
       let write = 0
-      const lv = level.current, act = active.current
       for (let k = 0; k < activeCount.current; k++) {
-        const idx = act[k]
-        const value = lv[idx] * decay
+        const idx = active[k]
+        const value = level[idx] * decay
         if (value > MIN_LEVEL) {
-          lv[idx] = value
-          act[write++] = idx
+          level[idx] = value
+          active[write++] = idx
         } else {
-          lv[idx] = 0
-          inList.current[idx] = 0
+          level[idx] = 0
+          inList[idx] = 0
         }
       }
       const before = activeCount.current
       activeCount.current = write
       addReticle()
       // Nothing lit, no light, no cursor: go to sleep until the pointer wakes us.
-      if (activeCount.current === 0 && p.heat === 0 && !t.on) {
+      if (activeCount.current === 0 && p.heat === 0 && !wanted) {
         unsub?.()
         unsub = null
         last = 0
@@ -372,10 +379,10 @@ function HalftoneField({ armed, sectionRef }: { armed: boolean; sectionRef: Reac
     }
     let unsub: (() => void) | null = null
     wake.current = () => {
-      if (!unsub) unsub = subscribe(frame)
+      if (!unsub) unsub = subscribe(frame, () => CAP_30)
     }
     return () => unsub?.()
-  }, [draw, index])
+  }, [active, draw, index, inList, level])
 
   return <canvas ref={canvasRef} className="halftone" aria-hidden="true" />
 }
@@ -390,6 +397,10 @@ function Stage({ sectionRef }: { sectionRef: React.RefObject<HTMLElement | null>
   const grid = useRef<SVGGElement>(null)
   const lap = useRef(0)
   const heat = useRef(1)
+  const elapsed = useRef(0)
+  const previousFrame = useRef(0)
+  const lastPassed = useRef(-1)
+  const lastDistance = useRef(-1)
   const [armed, setArmed] = useState(false)
   const [lit, setLit] = useState(0)
   const narrow = useMedia('(max-width: 1023px)')
@@ -397,17 +408,11 @@ function Stage({ sectionRef }: { sectionRef: React.RefObject<HTMLElement | null>
   const render = useCallback(() => {
     const canvas = trace.current
     if (!canvas) return
-    const c = canvas.getContext('2d')!
-    const coarse = window.matchMedia('(hover: none) and (pointer: coarse)').matches
-    const ratio = Math.min(window.devicePixelRatio || 1, coarse ? 1 : 2)
-    const w = 1440 * ratio
-    if (canvas.width !== w) {
-      canvas.width = w
-      canvas.height = 800 * ratio
-    }
-    c.setTransform(1, 0, 0, 1, 0, 0)
-    c.clearRect(0, 0, canvas.width, canvas.height)
-    c.setTransform(ratio, 0, 0, ratio, 0, 0)
+    const c = canvas.getContext('2d')
+    if (!c) return
+    c.setTransform(canvas.width / 1440, 0, 0, canvas.height / 800, 0, 0)
+    const padding = 40
+    c.clearRect(TRACK_BOX.x - padding, TRACK_BOX.y - padding, TRACK_BOX.width + padding * 2, TRACK_BOX.height + padding * 2)
     const distance = distanceAtTime(lap.current)
     const points = trailUpTo(distance)
     const h = heat.current
@@ -456,44 +461,34 @@ function Stage({ sectionRef }: { sectionRef: React.RefObject<HTMLElement | null>
         c.stroke()
       }
     }
-    setLit(passed)
-    if (lapMask.current) lapMask.current.style.strokeDashoffset = String(TOTAL - distance)
+    if (lastPassed.current !== passed) {
+      lastPassed.current = passed
+      setLit(passed)
+    }
+    if (lapMask.current && lastDistance.current !== distance) {
+      lastDistance.current = distance
+      lapMask.current.style.strokeDashoffset = String(TOTAL - distance)
+    }
   }, [])
 
-  // One lap, when the block arrives. Never re-runs.
+  // The lap runs once and pauses whenever the track leaves the viewport.
   useEffect(() => {
-    const frame = frameRef.current!
-    const cool = new Spring(1, { duration: COOL_MS, easing: easeOutCubic }, (v) => {
-      heat.current = v
-      render()
-      if (v <= 0) setArmed(true)
-    })
-    const run = new Spring(0, { duration: LAP_MS, easing: easeInOutSine }, (v) => {
-      lap.current = v
-      render()
-      if (v >= 1) cool.to(0)
-    })
-    render()
     if (reducedMotion) {
-      run.set(1)
-      cool.set(0)
-      return
-    }
-    const io = new IntersectionObserver(
-      ([e]) => {
-        if (!e.isIntersecting) return
-        io.disconnect()
-        run.to(1)
-      },
-      { threshold: 0.35 },
-    )
-    io.observe(frame)
-    return () => {
-      io.disconnect()
-      run.stop()
-      cool.stop()
+      lap.current = 1
+      heat.current = 0
+      setArmed(true)
+      render()
     }
   }, [render])
+  useVisibleLoop(frameRef, (now) => {
+    const delta = now - previousFrame.current
+    if (previousFrame.current && delta < 150) elapsed.current += delta
+    previousFrame.current = now
+    lap.current = easeInOutSine(Math.min(1, elapsed.current / LAP_MS))
+    heat.current = 1 - easeOutCubic(Math.min(1, Math.max(0, (elapsed.current - LAP_MS) / COOL_MS)))
+    render()
+    if (heat.current === 0) setArmed(true)
+  }, () => CAP_30, !armed && !reducedMotion)
 
   // The grid crawls and the hub pings, only while the map is on screen.
   useVisibleLoop(
@@ -512,26 +507,35 @@ function Stage({ sectionRef }: { sectionRef: React.RefObject<HTMLElement | null>
   useEffect(() => {
     const frame = frameRef.current!
     const stage = stageRef.current!
+    const canvas = trace.current!
     const fit = () => {
       const w = frame.clientWidth
+      let scale: number
       if (narrow) {
-        const s = w / TRACK_BOX.width
-        frame.style.height = `${TRACK_BOX.height * s}px`
-        stage.style.transform = `translate(${-TRACK_BOX.x * s}px, ${-TRACK_BOX.y * s}px) scale(${s})`
+        scale = w / TRACK_BOX.width
+        frame.style.height = `${TRACK_BOX.height * scale}px`
+        stage.style.transform = `translate(${-TRACK_BOX.x * scale}px, ${-TRACK_BOX.y * scale}px) scale(${scale})`
       } else {
         frame.style.height = ''
         const h = frame.clientHeight
-        const s = Math.max(w / 1440, h / 800)
+        scale = Math.max(w / 1440, h / 800)
         // Centred, unless that crops the track's right end (squarer windows): then slide left just enough.
-        const x = Math.min((w - 1440 * s) / 2, w - (TRACK_BOX.x + TRACK_BOX.width) * s)
-        stage.style.transform = `translate(${x}px, ${(h - 800 * s) / 2}px) scale(${s})`
+        const x = Math.min((w - 1440 * scale) / 2, w - (TRACK_BOX.x + TRACK_BOX.width) * scale)
+        stage.style.transform = `translate(${x}px, ${(h - 800 * scale) / 2}px) scale(${scale})`
+      }
+      const ratio = Math.min(1, scale * Math.min(window.devicePixelRatio || 1, 1.5))
+      const width = Math.max(1, Math.round(1440 * ratio))
+      if (canvas.width !== width || canvas.height === 150) {
+        canvas.width = width
+        canvas.height = Math.max(1, Math.round(800 * ratio))
+        render()
       }
     }
     fit()
     const ro = new ResizeObserver(fit)
     ro.observe(frame)
     return () => ro.disconnect()
-  }, [narrow])
+  }, [narrow, render])
 
   const axesX = [575, 930, 1285]
   const hub = { x: 930, y: 405 }

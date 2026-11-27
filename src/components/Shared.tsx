@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useScrub, useVisibleLoop } from '../engine/hooks'
-import { CAP_30, reducedMotion } from '../engine/ticker'
+import { CAP_30, isScrolling, reducedMotion } from '../engine/ticker'
 
 export const readToken = (token: string) => {
   const probe = document.createElement('span')
@@ -36,7 +36,7 @@ export function Chequer({ carry, className = '' }: { carry: 'light' | 'dark'; cl
     if (!canvas) return
     const { width, height } = size.current
     if (!width || !height) return
-    const ratio = Math.min(window.devicePixelRatio || 1, 2)
+    const ratio = Math.min(window.devicePixelRatio || 1, 1.25)
     if (canvas.width !== Math.round(width * ratio)) canvas.width = Math.round(width * ratio)
     if (canvas.height !== Math.round(height * ratio)) canvas.height = Math.round(height * ratio)
     const context = canvas.getContext('2d')!
@@ -76,6 +76,7 @@ export function Chequer({ carry, className = '' }: { carry: 'light' | 'dark'; cl
       render()
     },
     true,
+    !reducedMotion,
   )
 
   useEffect(() => {
@@ -180,17 +181,14 @@ export function Contours({ token }: { token: string }) {
   const drawRef = useRef<(now: number) => void>(() => {})
   useEffect(() => {
     const canvas = ref.current!
-    const context = canvas.getContext('2d')!
+    const context = canvas.getContext('2d')
+    if (!context) return
     const colour = readToken(token)
     const start = performance.now()
     let values = new Float32Array(0)
+    let width = 0, height = 0, ratio = 1
     const draw = (now: number) => {
-      const width = canvas.clientWidth
-      const height = canvas.clientHeight
       if (!width || !height) return
-      const ratio = Math.min(window.devicePixelRatio || 1, 2)
-      if (canvas.width !== Math.round(width * ratio)) canvas.width = Math.round(width * ratio)
-      if (canvas.height !== Math.round(height * ratio)) canvas.height = Math.round(height * ratio)
       context.setTransform(1, 0, 0, 1, 0, 0)
       context.clearRect(0, 0, canvas.width, canvas.height)
       context.setTransform(ratio, 0, 0, ratio, 0, 0)
@@ -248,10 +246,18 @@ export function Contours({ token }: { token: string }) {
       context.globalAlpha = 1
     }
     drawRef.current = draw
-    draw(performance.now())
+    const observer = new ResizeObserver(([entry]) => {
+      width = entry.contentRect.width
+      height = entry.contentRect.height
+      ratio = Math.min(window.devicePixelRatio || 1, 1.25, Math.sqrt(1_000_000 / Math.max(1, width * height)))
+      canvas.width = Math.round(width * ratio)
+      canvas.height = Math.round(height * ratio)
+      draw(performance.now())
+    })
+    observer.observe(canvas)
+    return () => observer.disconnect()
   }, [token])
-  // The field drifts slowly: 30fps is indistinguishable here and halves the cost.
-  useVisibleLoop(ref, (now) => drawRef.current(now), () => CAP_30, !reducedMotion)
+  useVisibleLoop(ref, (now) => drawRef.current(now), () => isScrolling() ? 64 : CAP_30, !reducedMotion)
   return <canvas ref={ref} className="contours" aria-hidden="true" />
 }
 
@@ -280,7 +286,7 @@ export function Parallax({
   useScrub(ref, start, end, (p) => {
     // A transform, not `top`: moving it never re-lays out the page.
     if (inner.current) inner.current.style.transform = `translate3d(0, ${(((a + (b - a) * p) / 1440) * 100).toFixed(4)}cqw, 0)`
-  })
+  }, false, !reducedMotion && (a !== 0 || b !== 0))
   return (
     <div ref={ref} className={`parallax ${className}`}>
       <div ref={inner} className="parallax-inner">

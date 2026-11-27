@@ -23,6 +23,7 @@
 @media (max-width: 767px) {
   .page-head-middle { flex-direction: column; align-items: flex-start; padding-top: 3rem; }
   .page-head-column { min-height: 0; }
+  .page-title:not(.page-title-long) { font-size: clamp(2.75rem, 20vw, 4.5rem); }
 }
 
 /* The portrait (journey page head), with its AI-edited note */
@@ -51,8 +52,8 @@
 .portrait-ai:hover + .portrait-note, .portrait-ai:focus-visible + .portrait-note, .portrait-ai.is-open + .portrait-note { opacity: 1; transform: none; }
 /* Below 1280: too narrow for title, portrait and panel in one row. The title takes its own row. */
 @media (min-width: 768px) and (max-width: 1279px) {
-  .page-head-middle:has(.portrait-rise) { flex-wrap: wrap; column-gap: 2.5rem; }
-  .page-head-middle:has(.portrait-rise) .page-title { flex-basis: 100%; }
+  .page-head-middle:has(.portrait-rise), .page-head-long { flex-wrap: wrap; column-gap: 2.5rem; }
+  .page-head-middle:has(.portrait-rise) .page-title, .page-head-long .page-title { flex-basis: 100%; }
   .portrait-rise { width: clamp(13rem, 28vw, 17rem); margin: 0; }
   .page-head-middle:has(.portrait-rise) .page-head-side { flex: 1; }
 }
@@ -88,7 +89,8 @@
 }
 .tl-polaroid img { display: block; width: 100%; height: auto; }
 @media (max-width: 639px) {
-  .tl-polaroid { position: relative; left: auto !important; top: auto !important; width: 62% !important; padding: 8px 8px 26px; margin: -8px auto 0; }
+  .tl-polaroid { position: relative; left: auto !important; top: auto !important; width: 62% !important; padding: 8px 8px 26px; margin: 0 auto; }
+  .tl-layer-copy + .tl-layer-scatter { margin-top: 0.75rem; }
   .tl-layer-scatter + .tl-layer-scatter .tl-polaroid { margin-left: 30%; }
 }
 
@@ -234,16 +236,18 @@
 
 /* The full view */
 .viewer {
-  position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 5rem 4.5rem 2rem;
+  position: fixed; inset: 0; z-index: 80; display: grid; grid-template-rows: auto minmax(0, 1fr);
+  gap: 1rem; padding: 1.25rem 4.5rem 2rem; overflow: auto;
   background: rgb(9 10 11 / 0.96); color: var(--foreground-on-dark);
 }
-.viewer-top { position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: flex-start; padding: 1.25rem 1.5rem; }
+.viewer-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-inline: -3rem; }
 .viewer-title { display: flex; flex-direction: column; gap: 0.35rem; font-family: var(--font-display); font-weight: 700; text-transform: uppercase; font-size: 1.5rem; line-height: 1; }
 .viewer-title span { font-family: var(--font-sans); font-weight: 400; text-transform: none; font-size: 0.85rem; color: var(--foreground-on-dark-muted); }
+.viewer-close { flex: none; }
 .viewer-close span { background: var(--foreground-on-dark); }
-.viewer-figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 0.9rem; max-width: 100%; }
-.viewer-figure img { display: block; width: auto; height: auto; max-width: min(100%, 1100px); max-height: calc(100svh - 10rem); object-fit: contain; }
-.viewer-figure figcaption { display: flex; gap: 2rem; justify-content: space-between; width: 100%; font-size: 0.8rem; text-transform: uppercase; }
+.viewer-figure { margin: 0 auto; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 0.9rem; width: min(100%, 1100px); min-height: 0; }
+.viewer-figure img { display: block; width: 100%; height: 100%; min-height: 0; object-fit: contain; }
+.viewer-figure figcaption { display: flex; flex-wrap: wrap; gap: 0.75rem 2rem; justify-content: space-between; font-size: 0.8rem; text-transform: uppercase; }
 .viewer-link { display: inline-flex; align-items: center; gap: 0.6em; color: var(--accent); white-space: nowrap; }
 .viewer-link:hover .cta-arrow { transform: translateX(0.25rem); }
 .viewer-dots { display: flex; gap: 6px; align-items: center; }
@@ -259,8 +263,9 @@
 .viewer-prev .cta-arrow { transform: rotate(180deg); }
 .viewer-next { right: 1rem; }
 @media (max-width: 639px) {
-  .viewer { padding: 5rem 1rem 6rem; }
-  .viewer-figure figcaption { flex-wrap: wrap; gap: 0.75rem 1.5rem; }
+  .viewer { padding: 1.25rem 1rem 6rem; }
+  .viewer:not(:has(.viewer-step)) { padding-bottom: 2rem; }
+  .viewer-top { margin-inline: 0; }
   .viewer-figure figcaption > span:first-child { flex-basis: 100%; }
   .viewer-step { top: auto; bottom: 1.25rem; margin-top: 0; }
   .viewer-prev { left: calc(50% - 64px); }
