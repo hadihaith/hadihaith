@@ -4,7 +4,7 @@
 </div>
 
 <div align="center">
-  <a href="https://hadihaith.github.io/hadihaith/">
+  <a href="https://hadihaidar.tech/">
     <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=22&duration=2800&pause=900&color=02D2E3&center=true&vCenter=true&width=680&lines=Full-stack+dev+at+Kuwait+University+%F0%9F%92%BB;Django+%2B+React+%2B+a+little+bit+of+chaos+%F0%9F%A7%AA;NASA+Space+Apps+builder+%F0%9F%9A%80;3rd+in+the+Gulf+at+AI%2BX+%F0%9F%8F%86;Teaching+an+LED+backpack+to+talk+%F0%9F%8E%92;Fueled+by+coffee+and+compile+errors+%E2%98%95" alt="Typing SVG" />
   </a>
 </div>
@@ -12,7 +12,7 @@
 <p align="center">
   <img src="https://komarev.com/ghpvc/?username=hadihaith&label=Profile%20Views&color=02d2e3&style=for-the-badge" alt="Profile Views" />
   <img src="https://img.shields.io/github/followers/hadihaith?label=Followers&style=for-the-badge&color=090a0b&labelColor=02d2e3" alt="Followers" />
-  <a href="https://hadihaith.github.io/hadihaith/"><img src="https://img.shields.io/badge/Portfolio-live-02d2e3?style=for-the-badge&logo=githubpages&logoColor=white&labelColor=090a0b" alt="Portfolio" /></a>
+  <a href="https://hadihaidar.tech/"><img src="https://img.shields.io/badge/Portfolio-live-02d2e3?style=for-the-badge&logo=githubpages&logoColor=white&labelColor=090a0b" alt="Portfolio" /></a>
 </p>
 
 <div align="center">
@@ -78,7 +78,7 @@ const hadi = {
 | 🎒 | **[Unofficial Pix Studio](https://github.com/hadihaith/pix-backpack)** *(WIP)* | A Kotlin app that sweet-talks a Divoom PIX LED backpack over Bluetooth LE. Pixel art editors incoming. |
 | 🎟️ | **[DLC Website](https://www.dlccba.app)** · [source](https://github.com/hadihaith/DLCwebsite) | The Dean's List Council site, built end to end: QR attendance with secret codes, live dashboards, parking, exchange apps. |
 | 🎓 | **[Dr. Salman Aljazzaf's site](https://www.salmanaljazzaf.com)** · [source](https://github.com/hadihaith/SalmanAljazzaf) | A fast static academic site in Astro. |
-| ❌⭕ | **[TicTacToe](https://github.com/hadihaith/TicTacToe)** | The classic. There's a playable version [on my site](https://hadihaith.github.io/hadihaith/). It blocks your wins, fair warning. |
+| ❌⭕ | **[TicTacToe](https://github.com/hadihaith/TicTacToe)** | The classic. There's a playable version [on my site](https://hadihaidar.tech/). It blocks your wins, fair warning. |
 
 <div align="center">
   <img src="https://user-images.githubusercontent.com/74038190/215768208-3bf3dda8-eeea-40ee-a58b-f5ac529685bf.gif" width="100%" alt="android developer" />
@@ -160,7 +160,7 @@ const hadi = {
 ## <img src="https://user-images.githubusercontent.com/74038190/216120981-b9507c36-0e04-4469-8e27-c99271b45ba5.png" width="34" /> &nbsp;Say hi!
 
 <div align="center">
-  <a href="https://hadihaith.github.io/hadihaith/"><img src="https://user-images.githubusercontent.com/74038190/226190894-18e959ba-d458-4a94-ac44-790190f2a947.gif" width="320" alt="hello world in many languages" /></a>
+  <a href="https://hadihaidar.tech/"><img src="https://user-images.githubusercontent.com/74038190/226190894-18e959ba-d458-4a94-ac44-790190f2a947.gif" width="320" alt="hello world in many languages" /></a>
   <br><br>
   <a href="https://linkedin.com/in/hadihhaidar"><img src="https://user-images.githubusercontent.com/74038190/235294012-0a55e343-37ad-4b0f-924f-c8431d9d2483.gif" width="70" title="LinkedIn" alt="LinkedIn" /></a>
   &nbsp;

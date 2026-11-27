@@ -10,10 +10,12 @@ type Props = {
   panel?: { eyebrow: string; stats: { label: string; value: string }[] }
   /** A long title word: let the title shrink further on phones so it never runs off screen. */
   longTitle?: boolean
+  /** Shown between the title and the side column (the journey page's portrait). */
+  figure?: React.ReactNode
 }
 
 /** The light opening block of the journey and gallery pages, in the hero's language. */
-export default function PageHead({ title, intro, panel, longTitle }: Props) {
+export default function PageHead({ title, intro, panel, longTitle, figure }: Props) {
   useEffect(() => {
     // Opened directly, there is no hero veil to hand over to: lift the boot veil now.
     document.getElementById('boot-veil')?.remove()
@@ -33,6 +35,7 @@ export default function PageHead({ title, intro, panel, longTitle }: Props) {
               </Rise>
             </span>
           </h1>
+          {figure}
           <Rise className="page-head-side" delay={520} y="1.25rem" config={REVEAL} enabled>
             <p className="page-intro">{intro}</p>
             {panel && (

@@ -27,12 +27,14 @@ export function Chequer({ carry, className = '' }: { carry: 'light' | 'dark'; cl
   const ref = useRef<HTMLCanvasElement>(null)
   const progress = useRef(0)
   const colours = useRef<{ surface: string; accent: string } | null>(null)
+  // Measured by the ResizeObserver, not on each draw: reading the size inside
+  // a scroll frame would force a layout after the other effects' writes.
+  const size = useRef({ width: 0, height: 0 })
 
   const render = useCallback(() => {
     const canvas = ref.current
     if (!canvas) return
-    const width = canvas.clientWidth
-    const height = canvas.clientHeight
+    const { width, height } = size.current
     if (!width || !height) return
     const ratio = Math.min(window.devicePixelRatio || 1, 2)
     if (canvas.width !== Math.round(width * ratio)) canvas.width = Math.round(width * ratio)
@@ -77,7 +79,10 @@ export function Chequer({ carry, className = '' }: { carry: 'light' | 'dark'; cl
   )
 
   useEffect(() => {
-    const ro = new ResizeObserver(render)
+    const ro = new ResizeObserver(([entry]) => {
+      size.current = { width: entry.contentRect.width, height: entry.contentRect.height }
+      render()
+    })
     if (ref.current) ro.observe(ref.current)
     return () => ro.disconnect()
   }, [render])
@@ -250,7 +255,7 @@ export function Contours({ token }: { token: string }) {
   return <canvas ref={ref} className="contours" aria-hidden="true" />
 }
 
-/* ---------- Parallax layer: moves its content on `top` ---------- */
+/* ---------- Parallax layer: moves its content with a transform ---------- */
 export function Parallax({
   travel,
   start = 'top_bottom',
@@ -273,7 +278,8 @@ export function Parallax({
   const a = from ?? travel ?? 0
   const b = to ?? -(travel ?? 0)
   useScrub(ref, start, end, (p) => {
-    if (inner.current) inner.current.style.top = `${(((a + (b - a) * p) / 1440) * 100).toFixed(4)}cqw`
+    // A transform, not `top`: moving it never re-lays out the page.
+    if (inner.current) inner.current.style.transform = `translate3d(0, ${(((a + (b - a) * p) / 1440) * 100).toFixed(4)}cqw, 0)`
   })
   return (
     <div ref={ref} className={`parallax ${className}`}>

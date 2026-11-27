@@ -111,18 +111,46 @@ export const scrollToHash = (hash: string): void => {
 export const CAP_60 = 1000 / 60 - 2
 export const CAP_30 = 1000 / 30 - 2
 
-/** Calls `cb` on a coalesced frame after each scroll or resize: no work while the page is still. */
+/**
+ * Calls `cb` once per frame in which the page moved or resized: no work while
+ * the page is still. Lenis moves the page inside its frame and reports it
+ * straight away, so scroll-driven effects land in that same frame instead of
+ * trailing it by one. Native scrolls (touch, scrollbar) come through the same
+ * report; the plain listener is the fallback when Lenis is off.
+ */
 const scrollers = new Set<() => void>()
 let scrollRaf = 0
+let flushedAt = -1
+let resized = false
 const flushScroll = () => {
+  if (scrollRaf) cancelAnimationFrame(scrollRaf)
   scrollRaf = 0
+  const y = window.scrollY
+  if (!resized && y === flushedAt) return
+  resized = false
+  flushedAt = y
   for (const f of scrollers) f()
 }
-const onScrollish = () => {
-  if (!scrollRaf) scrollRaf = requestAnimationFrame(flushScroll)
-}
-window.addEventListener('scroll', onScrollish, { passive: true })
-window.addEventListener('resize', onScrollish)
+let lastScrollAt = -Infinity
+lenis?.on('scroll', () => {
+  lastScrollAt = performance.now()
+  flushScroll()
+})
+window.addEventListener(
+  'scroll',
+  () => {
+    lastScrollAt = performance.now()
+    if (!scrollRaf) scrollRaf = requestAnimationFrame(() => flushScroll())
+  },
+  { passive: true },
+)
+window.addEventListener('resize', () => {
+  resized = true
+  if (!scrollRaf) scrollRaf = requestAnimationFrame(() => flushScroll())
+})
+
+/** True while the page is moving, so heavy ambient work can ease off and leave the frame to the scroll. */
+export const isScrolling = () => Boolean(lenis?.isScrolling) || performance.now() - lastScrollAt < 150
 export const onScrollFrame = (cb: () => void) => {
   scrollers.add(cb)
   return () => scrollers.delete(cb)

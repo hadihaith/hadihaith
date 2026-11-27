@@ -1,5 +1,5 @@
 import { textToColumns } from '../pixelFont'
-import { CAP_30, CAP_60 } from '../engine/ticker'
+import { CAP_30, CAP_60, isScrolling } from '../engine/ticker'
 
 /**
  * The hero scene: one full-screen fragment shader on WebGL2.
@@ -691,6 +691,9 @@ export class HeroScene {
   frameInterval() {
     const t = this.startTime === null ? 0 : (performance.now() - this.startTime) / 1000
     const rising = this.riseStarted && (this.riseAt === null || t - this.riseAt < this.params.riseDuration)
+    // While the page scrolls the hero is sliding away under the next block:
+    // half rate leaves the GPU to the scroll. The intro still runs at full rate.
+    if (this.intro >= 1 && isScrolling()) return CAP_30
     const busy = this.intro < 1 || rising || this.pace > 0.01 || this.pointerMoving
     return busy ? this.tier.frameInterval : CAP_30
   }

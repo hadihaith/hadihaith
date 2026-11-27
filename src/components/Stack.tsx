@@ -1,4 +1,5 @@
 import { Children, useEffect, useRef, useState } from 'react'
+import { onScrollFrame } from '../engine/ticker'
 
 const idle = (cb: () => void) =>
   typeof requestIdleCallback === 'function' ? requestIdleCallback(cb, { timeout: 1500 }) : setTimeout(cb, 200)
@@ -34,38 +35,44 @@ export function Stack({ children }: { children: React.ReactNode }) {
       inner: layer.querySelector<HTMLElement>(':scope > .stack-inner')!,
       shade: layer.querySelector<HTMLElement>(':scope > .stack-shade')!,
       next: items[i + 1],
+      height: 0,
+      top: '',
+      p: -1,
     }))
     const phone = window.matchMedia('(max-width: 639px)')
-    let raf = 0
+    // Every scroll frame: read all the positions first, then write only what
+    // changed, so the browser lays the page out at most once per frame.
     const apply = () => {
-      raf = 0
       const view = window.innerHeight || 1
       const shrink = phone.matches ? 0 : 1 - RECEDE_SCALE
-      for (const { layer, inner, shade, next } of pinned) {
+      const progress = pinned.map(({ next }) => Math.min(1, Math.max(0, 1 - next.getBoundingClientRect().top / view)))
+      pinned.forEach((item, i) => {
         // A layer taller than the screen pins by its foot, not its head, so
         // all of it scrolls past before the next one comes over it.
-        const top = `${Math.min(0, view - inner.offsetHeight)}px`
-        if (layer.style.top !== top) layer.style.top = top
-        const p = Math.min(1, Math.max(0, 1 - next.getBoundingClientRect().top / view))
-        inner.style.transform = p > 0 && shrink > 0 ? `scale(${1 - shrink * p})` : ''
-        inner.style.willChange = p > 0 && shrink > 0 ? 'transform' : ''
-        shade.style.opacity = `${RECEDE_SHADE * p}`
-        inner.style.visibility = p >= 1 ? 'hidden' : 'visible'
+        const top = `${Math.min(0, view - item.height)}px`
+        if (item.top !== top) item.layer.style.top = item.top = top
+        const p = progress[i]
+        if (p === item.p) return
+        // The layer is promoted up front in CSS: promoting it the moment it
+        // starts to scale costs a dropped frame in the middle of the scroll.
+        item.inner.style.transform = p > 0 && shrink > 0 ? `scale(${1 - shrink * p})` : ''
+        item.shade.style.opacity = `${RECEDE_SHADE * p}`
+        if (p >= 1 !== item.p >= 1 || item.p < 0) item.inner.style.visibility = p >= 1 ? 'hidden' : 'visible'
+        item.p = p
+      })
+    }
+    const ro = new ResizeObserver(() => {
+      for (const item of pinned) {
+        item.height = item.inner.offsetHeight
+        item.p = -1 // a resize can change the scale (the phone breakpoint) at the same progress
       }
-    }
-    const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(apply)
-    }
-    apply()
-    const ro = new ResizeObserver(onScroll)
+      apply()
+    })
     pinned.forEach(({ inner }) => ro.observe(inner))
-    window.addEventListener('scroll', onScroll, { passive: true })
-    window.addEventListener('resize', onScroll)
+    const off = onScrollFrame(apply)
     return () => {
       ro.disconnect()
-      window.removeEventListener('scroll', onScroll)
-      window.removeEventListener('resize', onScroll)
-      cancelAnimationFrame(raf)
+      off()
     }
   }, [])
 

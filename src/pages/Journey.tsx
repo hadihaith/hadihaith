@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import PageHead from '../components/PageHead'
+import Portrait from '../components/Portrait'
 import Timeline from '../sections/Timeline'
 import Footer from '../sections/Footer'
 import { Chequer, Contours } from '../components/Shared'
@@ -58,6 +59,7 @@ export default function Journey() {
     <>
       <PageHead
         title={['the', 'journey']}
+        figure={<Portrait delay={420} />}
         intro="Kuwait University, teaching, research, a third place in the gulf and a semester in France. Scroll down the path."
         panel={{
           eyebrow: 'so far',

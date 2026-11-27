@@ -54,7 +54,8 @@ function Plate({ entry }: { entry: TimelineEntry }) {
   const slot = useRef<HTMLDivElement>(null)
   const inner = useRef<HTMLDivElement>(null)
   useScrub(slot, 'top_bottom', 'top_center', (p) => {
-    if (inner.current) inner.current.style.top = `${-10 + 10 * p}%`
+    // From top: -10% down to 0, as a transform (no relayout): 10p% of the slot is 10p/1.1% of the 110%-tall media.
+    if (inner.current) inner.current.style.transform = `translate3d(0, ${((10 * p) / 1.1).toFixed(3)}%, 0)`
   })
   return (
     <div className="tl-plate">

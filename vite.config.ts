@@ -30,10 +30,10 @@ const routePages = (): Plugin => {
 }
 
 // Preact stands in for React (same components, a fraction of the runtime).
-// The site lives at hadihaith.github.io/hadihaith/; set SITE_BASE=/ for a custom domain.
-// The dev server stays at '/'; the build and `vite preview` use the real base.
-export default defineConfig(({ command, isPreview }) => ({
-  base: command === 'build' || isPreview ? (process.env.SITE_BASE ?? '/hadihaith/') : '/',
+// The site lives at the root of hadihaidar.tech. To serve it from a subfolder
+// instead (hadihaith.github.io/hadihaith/ without the domain), build with SITE_BASE=/hadihaith/.
+export default defineConfig(() => ({
+  base: process.env.SITE_BASE ?? '/',
   plugins: [preact(), routePages()],
   build: {
     target: 'es2022',
