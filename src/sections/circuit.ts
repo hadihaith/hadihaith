@@ -54,12 +54,53 @@ const resample = (dense: [number, number][], step: number) => {
 
 export const CIRCUIT_PATH: Point[] = resample(spline(CORNERS), CIRCUIT_STEP)
 
-const CUMULATIVE = CIRCUIT_PATH.reduce<number[]>((acc, point, index) => {
+export const CUMULATIVE = CIRCUIT_PATH.reduce<number[]>((acc, point, index) => {
   if (index === 0) return [0]
   const previous = CIRCUIT_PATH[index - 1]
   acc.push(acc[index - 1] + Math.hypot(point[0] - previous[0], point[1] - previous[1]))
   return acc
 }, [])
+export const TOTAL = CUMULATIVE[CUMULATIVE.length - 1]
+
+const CORNER_BRAKE = 9
+const TIME_AT = (() => {
+  const count = CIRCUIT_PATH.length
+  const turn = new Array(count).fill(0)
+  for (let i = 1; i < count - 1; i += 1) {
+    const [ax, ay] = CIRCUIT_PATH[i - 1], [bx, by] = CIRCUIT_PATH[i], [cx, cy] = CIRCUIT_PATH[i + 1]
+    const ux = bx - ax, uy = by - ay, vx = cx - bx, vy = cy - by
+    const lengths = (Math.hypot(ux, uy) || 1) * (Math.hypot(vx, vy) || 1)
+    turn[i] = Math.acos(Math.min(1, Math.max(-1, (ux * vx + uy * vy) / lengths)))
+  }
+  const win = 6
+  const smoothed = turn.map((_, i) => {
+    let sum = 0, n = 0
+    for (let j = Math.max(0, i - win); j <= Math.min(count - 1, i + win); j += 1) { sum += turn[j]; n += 1 }
+    return sum / n
+  })
+  const accumulated = [0]
+  for (let i = 1; i < count; i += 1) {
+    const span = CUMULATIVE[i] - CUMULATIVE[i - 1]
+    const speed = 1 / (1 + CORNER_BRAKE * smoothed[i])
+    accumulated.push(accumulated[i - 1] + span / speed)
+  }
+  const total = accumulated[count - 1] || 1
+  return accumulated.map((v) => v / total)
+})()
+
+export const distanceAtTime = (time: number) => {
+  if (time <= 0) return 0
+  if (time >= 1) return TOTAL
+  let low = 0, high = TIME_AT.length - 1
+  while (low < high - 1) {
+    const mid = (low + high) >> 1
+    if (TIME_AT[mid] <= time) low = mid
+    else high = mid
+  }
+  const span = TIME_AT[high] - TIME_AT[low] || 1
+  const ratio = (time - TIME_AT[low]) / span
+  return CUMULATIVE[low] + (CUMULATIVE[high] - CUMULATIVE[low]) * ratio
+}
 
 const nearest = (x: number, y: number) => {
   let best = 0, bd = Infinity
@@ -111,3 +152,40 @@ export const TRACK_BOX = (() => {
 })()
 
 /* ---------- The halftone landmass ---------- */
+export const DOT_LATTICE = { pitchX: 4.383, pitchY: 4.327, originX: 2.81, originY: 11.6 }
+export const DOT_RADIUS = 0.98
+
+/**
+ * The landmass, as runs of lit lattice columns per row: "rowDelta:gap+len,gap+len;...".
+ * Generated once from three octaves of value noise (top 14% of the field) and
+ * shipped as data, so the page never spends a frame on noise maths. 8,332 dots
+ * in about 1.5KB of source.
+ */
+const PACKED =
+  "33:99+4;1:96+9;1:94+13,9+4;1:93+18,1+10;1:92+32;1:92+34;1:91+37;1:91+46;1:91+48,40+5;1:91+50,34+9;1:91+51,29+14;1:91+53,8+7,10+16;1:90+57,1+13,6+19;1:90+96;1:22+6,62+96;1:19+11,60+97;1:16+15,58+98;1:14+18,57+98;1:13+19,57+99;1:12+20,56+100;1:11+21,56+100;1:11+22,55+100;1:10+22,55+101,49+1;1:9+23,55+101,47+4;1:8+24,55+101,47+5;1:8+24,55+101,47+5;1:8+23,55+102;1:10+20,56+102;1:12+14,60+102;1:0+6,10+4,65+88,2+13;1:0+7,78+87,4+12;1:0+7,78+86,6+11,56+4;1:0+8,76+86,8+9,57+5;1:0+9,74+86,10+7,57+7;1:0+10,71+87,13+2,60+6;1:0+10,67+90,75+6;1:0+11,63+92,73+5;1:0+11,61+92,71+8;1:0+11,60+76,87+9;1:0+11,58+76,88+10;1:0+11,57+76,89+9;1:0+11,56+76,91+8;1:0+11,55+77,92+6;1:0+11,55+77;1:0+12,54+78;1:0+12,53+79;1:0+12,53+80;1:0+13,51+84;1:0+13,51+85;1:0+13,50+87;1:0+12,51+87;1:0+11,51+88;1:0+9,52+57,5+27;1:60+57,9+24;1:60+56,17+17;1:58+57,20+15;1:57+57,23+13;1:55+58,26+11;1:47+65,28+10;1:43+68,30+9;1:41+69,32+8;1:39+71,34+6;1:36+74,35+5;1:30+80;1:29+81;1:29+81,43+1;1:28+82,42+5;1:28+82,42+6;1:28+82,42+6;1:28+82,42+6;1:28+82,43+3;1:28+81;1:28+81;1:29+80;1:29+79;1:29+78;1:30+76;1:30+73;1:31+60;1:32+58;1:33+56;1:33+56;1:33+55;1:33+54;1:32+54;1:32+52;1:33+48;1:33+46;1:33+45;1:34+31,3+7;1:35+29;1:35+28;1:36+26;1:37+25;1:38+23;1:39+2,4+16;1:47+13;1:47+13;1:48+11;1:48+11;1:49+8;21:118+3;1:117+5;1:116+7;1:115+8;1:115+9;1:114+11;1:113+13;1:112+16;1:110+21;1:108+24;1:107+25;1:106+27;1:105+28;1:105+28;1:104+29;1:104+29;1:103+31;1:103+31;1:102+32;1:101+33;1:101+34;1:101+34;1:100+35;1:100+35;1:100+35;1:100+36;1:101+35;1:101+35,173+2"
+
+export type DotField = { points: Float32Array; columns: Int16Array; rows: Int16Array; count: number }
+
+let dots: DotField | null = null
+/** Decoded on first use, not at import. */
+export const getDots = (): DotField => (dots ??= decodeDots())
+
+const decodeDots = (): DotField => {
+  const xs: number[] = [], cs: number[] = [], rs: number[] = []
+  let j = 0
+  for (const row of PACKED.split(';')) {
+    const [head, body] = row.split(':')
+    j += Number(head)
+    let i = 0
+    for (const run of body.split(',')) {
+      const [gap, len] = run.split('+').map(Number)
+      i += gap
+      for (let k = 0; k < len; k++, i++) {
+        xs.push(DOT_LATTICE.originX + i * DOT_LATTICE.pitchX, DOT_LATTICE.originY + j * DOT_LATTICE.pitchY)
+        cs.push(i)
+        rs.push(j)
+      }
+    }
+  }
+  return { points: Float32Array.from(xs), columns: Int16Array.from(cs), rows: Int16Array.from(rs), count: cs.length }
+}

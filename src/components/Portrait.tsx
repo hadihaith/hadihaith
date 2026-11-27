@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { Rise } from '../engine/Reveal'
+import { REVEAL } from '../engine/spring'
 import { Brackets } from './Shared'
 import portrait from '../media/portrait.jpg'
 
@@ -7,7 +9,7 @@ import portrait from '../media/portrait.jpg'
  * edited with AI, and says so: the "AI" chip shows a note on hover, on
  * keyboard focus, or on a tap (touch has no hover).
  */
-export default function Portrait() {
+export default function Portrait({ delay = 0 }: { delay?: number }) {
   const [open, setOpen] = useState(false)
   const root = useRef<HTMLElement>(null)
 
@@ -25,7 +27,7 @@ export default function Portrait() {
   }, [open])
 
   return (
-    <div className="portrait-rise">
+    <Rise className="portrait-rise" delay={delay} y="1.25rem" config={REVEAL} enabled>
       <figure ref={root} className="portrait">
         <div className="portrait-frame">
           <img src={portrait} width={768} height={1024} alt="Portrait of Hadi Haidar (AI-edited photo)" decoding="async" />
@@ -45,6 +47,6 @@ export default function Portrait() {
           This portrait was edited with AI.
         </span>
       </figure>
-    </div>
+    </Rise>
   )
 }

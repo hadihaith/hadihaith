@@ -1,18 +1,52 @@
 import { textToColumns } from '../pixelFont'
+import { CAP_30, CAP_60, isScrolling } from '../engine/ticker'
 
 /**
  * The hero scene: one full-screen fragment shader on WebGL2.
  *
  * The subject is an LED backpack (the PIX project) drawn as a hairline
  * technical drawing. The cursor's recent path is a liquid-edged mask that
- * reveals the solid, lit device over it. The scene is only drawn during
- * pointer interaction, when it replaces the static poster.
+ * reveals the solid, lit device over it; on load the device arrives solid and
+ * burns away crown to foot behind a cyan front. A scan wave runs down its dot
+ * matrix every 1.2s, and contour lines roll across the whole block.
  */
+
+export type TierName = 'mobile' | 'tablet' | 'desktop'
+export interface SceneTier {
+  name: TierName
+  coarsePointer: boolean
+  reducedMotion: boolean
+  maxDpr: number
+  frameInterval: number
+  pointerEnabled: boolean
+  reveal: boolean
+  freeze: boolean
+}
+
+export const getSceneTier = (): SceneTier => {
+  const coarse = window.matchMedia('(hover: none) and (pointer: coarse)').matches
+  const width = window.innerWidth
+  const name: TierName = width < 768 || (coarse && width < 1024) ? 'mobile' : coarse || width < 1280 ? 'tablet' : 'desktop'
+  const mobile = name === 'mobile'
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  return {
+    name,
+    coarsePointer: coarse,
+    reducedMotion,
+    maxDpr: mobile ? 1 : name === 'tablet' ? 1.15 : 1.25,
+    frameInterval: mobile ? CAP_30 : CAP_60,
+    pointerEnabled: !mobile && !coarse && !reducedMotion,
+    reveal: !mobile,
+    freeze: reducedMotion,
+  }
+}
 
 export const PARAMS = {
   subjectScale: 1,
   subjectY: -0.1,
   subjectParallax: 0.02,
+  riseDistance: 200,
+  riseDuration: 2,
   relight: 0.5,
   trailRadius: 0.46,
   trailIdleScale: 0.28,
@@ -314,13 +348,17 @@ export class HeroScene {
   private startTime: number | null = null
   private readyAt: number | null = null
   private intro = 0
+  private riseStarted = false
+  private riseAt: number | null = null
   private width = 1
   private height = 1
+  private settled = false
   private disposed = false
   private ledStep = -1
   private blinkUntil = 0
   private nextBlink = 2.5
   private columns = textToColumns(MESSAGE)
+  tier: SceneTier
   ready = false
   onReady: (() => void) | null = null
   onError: ((e: Error) => void) | null = null
@@ -328,21 +366,21 @@ export class HeroScene {
   private buffer: WebGLBuffer | null = null
   private staticDirty = true
   private trailDirty = true
+  private pointerMoving = false
+  private pointerTimer = 0
   private linked = false
   /** Subject placement in NDC: centre (x, y) and scale. */
   private fit = { x: 0, y: PARAMS.subjectY, scale: PARAMS.subjectScale }
   private colours: Record<string, [number, number, number]>
 
   constructor(private canvas: HTMLCanvasElement) {
+    this.tier = getSceneTier()
     this.trail = new Float32Array(this.samples * 2)
     for (let i = 0; i < this.samples; i++) {
       this.trail[i * 2] = STATIC_POSE.x
       this.trail[i * 2 + 1] = -STATIC_POSE.y
     }
-    const gl = canvas.getContext('webgl2', {
-      antialias: false, alpha: false, stencil: false, depth: false,
-      powerPreference: 'low-power', failIfMajorPerformanceCaveat: true,
-    })
+    const gl = canvas.getContext('webgl2', { antialias: false, alpha: false, stencil: false, depth: false })
     if (!gl) throw new Error('WebGL2 unavailable')
     this.gl = gl
     // One style read for every colour: the raw tier of the tokens is plain hex.
@@ -371,6 +409,7 @@ export class HeroScene {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
     gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA8, LED_COLS, LED_ROWS)
+    if (!this.tier.pointerEnabled) this.parkPointer()
     this.drawLed(0)
     // The compile runs in the background; once linked, one throwaway frame and we are ready.
     this.whenLinked(() => {
@@ -481,7 +520,7 @@ export class HeroScene {
       }
     }
     const cols = this.columns
-    const offset = step % (cols.length + LED_COLS)
+    const offset = this.tier.freeze ? 0 : step % (cols.length + LED_COLS)
     for (let x = 0; x < LED_COLS; x++) {
       const c = cols[(x + offset) % cols.length]
       if (!c) continue
@@ -492,8 +531,31 @@ export class HeroScene {
     gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, LED_COLS, LED_ROWS, gl.RGBA, gl.UNSIGNED_BYTE, px)
   }
 
+  retune() {
+    const prev = this.tier
+    this.tier = getSceneTier()
+    if (!this.tier.pointerEnabled) this.parkPointer()
+    else if (!prev.pointerEnabled) this.pointerSeen = false
+    if (!this.tier.freeze) this.settled = false
+    return this.tier
+  }
+
+  private parkPointer() {
+    this.pointer = { ...STATIC_POSE }
+    this.smoothed = { ...STATIC_POSE }
+    this.lastSmoothed = { ...STATIC_POSE }
+    this.pointerSeen = false
+  }
+
+  beginRise() {
+    this.riseStarted = true
+  }
+
   setPointer(x: number, y: number) {
     this.pointer = { x, y }
+    this.pointerMoving = true
+    clearTimeout(this.pointerTimer)
+    this.pointerTimer = window.setTimeout(() => (this.pointerMoving = false), 400)
     if (!this.pointerSeen) {
       this.pointerSeen = true
       this.smoothed = { x, y }
@@ -504,42 +566,47 @@ export class HeroScene {
   setParams(partial: Partial<SceneParams>) {
     Object.assign(this.params, partial)
     this.staticDirty = true
+    this.settled = false
   }
 
   /** Place the device: centre in NDC and a scale (1 = the xl frame). */
   setFit(fit: { x: number; y: number; scale: number }) {
     this.fit = fit
+    this.settled = false
   }
 
   resize(width: number, height: number) {
     this.width = Math.max(1, width)
     this.height = Math.max(1, height)
-    const pixelBudget = 650_000
-    const dpr = Math.min(window.devicePixelRatio || 1, Math.sqrt(pixelBudget / (this.width * this.height)))
+    const pixelBudget = this.tier.name === 'mobile' ? 350_000 : this.tier.name === 'tablet' ? 800_000 : 1_500_000
+    const dpr = Math.min(window.devicePixelRatio || 1, this.tier.maxDpr, Math.sqrt(pixelBudget / (this.width * this.height)))
     const w = Math.max(1, Math.floor(this.width * dpr))
     const h = Math.max(1, Math.floor(this.height * dpr))
     if (this.canvas.width !== w) this.canvas.width = w
     if (this.canvas.height !== h) this.canvas.height = h
     this.gl.viewport(0, 0, this.canvas.width, this.canvas.height)
     this.staticDirty = true
+    this.settled = false
   }
 
   update(time: number) {
-    if (this.disposed || !this.linked) return
+    if (this.disposed || this.settled || !this.linked) return
     if (this.startTime === null) this.startTime = time
     const t = (time - this.startTime) / 1000
     const p = this.params
+    if (this.tier.freeze && this.intro >= 1) this.settled = true
 
     this.smoothed.x += (this.pointer.x - this.smoothed.x) * p.pointerLerp
     this.smoothed.y += (this.pointer.y - this.smoothed.y) * p.pointerLerp
 
     if (this.ready) {
       if (this.readyAt === null) this.readyAt = t
-      this.intro = Math.min(1, (t - this.readyAt) / p.introDuration)
+      this.intro = this.tier.freeze ? 1 : Math.min(1, (t - this.readyAt) / p.introDuration)
     }
 
     const step = Math.hypot(this.smoothed.x - this.lastSmoothed.x, this.smoothed.y - this.lastSmoothed.y)
-    const target = Math.min(1, step / p.pacePeak)
+    const revealOn = this.tier.reveal && this.tier.pointerEnabled
+    const target = revealOn ? Math.min(1, step / p.pacePeak) : 0
     this.pace += (target - this.pace) * (target > this.pace ? p.paceAttack : p.paceRelease)
     this.lastSmoothed.x = this.smoothed.x
     this.lastSmoothed.y = this.smoothed.y
@@ -552,7 +619,18 @@ export class HeroScene {
     this.render(t)
   }
 
-  /** Uniforms shared by every frame until the canvas or its placement changes. */
+  private riseOffset(t: number) {
+    if (this.tier.freeze) return 0
+    let remaining = 1
+    if (this.riseStarted) {
+      if (this.riseAt === null) this.riseAt = t
+      const u = Math.min(1, (t - this.riseAt) / this.params.riseDuration)
+      remaining = (1 - u) * (1 - u)
+    }
+    return (remaining * this.params.riseDistance * 2) / this.height
+  }
+
+  /** Uniforms that only change with params, size or tier: sent when dirty, not every frame. */
   private writeStatic() {
     const gl = this.gl
     const p = this.params
@@ -619,7 +697,7 @@ export class HeroScene {
       this.trailDirty = this.pace > 0.001
     }
     const cx = this.fit.x * aspect + this.smoothed.x * p.subjectParallax
-    const cy = this.fit.y - this.smoothed.y * p.subjectParallax
+    const cy = this.fit.y - this.smoothed.y * p.subjectParallax - this.riseOffset(t)
     gl.uniform3f(this.u('uCenter'), cx, cy, this.fit.scale)
     gl.uniform2f(this.u('uLight'), this.smoothed.x, -this.smoothed.y)
     gl.activeTexture(gl.TEXTURE0)
@@ -627,9 +705,25 @@ export class HeroScene {
     gl.drawArrays(gl.TRIANGLES, 0, 3)
   }
 
+  /**
+   * The ticker's frame budget for this scene. Full rate while something is
+   * moving fast (the burn, the rise, a cursor stroke); 30fps once only the
+   * ambient drift is left, which nobody can tell apart and costs half.
+   */
+  frameInterval() {
+    const t = this.startTime === null ? 0 : (performance.now() - this.startTime) / 1000
+    const rising = this.riseStarted && (this.riseAt === null || t - this.riseAt < this.params.riseDuration)
+    // While the page scrolls the hero is sliding away under the next block:
+    // half rate leaves the GPU to the scroll. The intro still runs at full rate.
+    if (this.intro >= 1 && isScrolling()) return CAP_30
+    const busy = this.intro < 1 || rising || this.pace > 0.01 || this.pointerMoving
+    return busy ? this.tier.frameInterval : CAP_30
+  }
+
   dispose() {
     if (this.disposed) return
     this.disposed = true
+    clearTimeout(this.pointerTimer)
     const gl = this.gl
     gl.useProgram(null)
     gl.deleteBuffer(this.buffer)

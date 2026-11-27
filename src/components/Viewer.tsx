@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Arrow } from './Shared'
+import { SHEET, Spring } from '../engine/spring'
+import { lenis, reducedMotion } from '../engine/ticker'
 
 export type Slide = {
   key: string
@@ -28,12 +30,17 @@ export default function Viewer({
   onClose: () => void
 }) {
   const [i, setI] = useState(start)
+  const root = useRef<HTMLDivElement>(null)
   const closeBtn = useRef<HTMLButtonElement>(null)
   const n = slides.length
   const step = useCallback((d: number) => setI((v) => (v + d + n) % n), [n])
 
   useEffect(() => {
+    const el = root.current!
+    const s = new Spring(0, SHEET, (v) => (el.style.opacity = String(v)))
+    if (!reducedMotion) s.to(1)
     const before = document.activeElement as HTMLElement | null
+    lenis?.stop()
     document.documentElement.classList.add('locked')
     closeBtn.current?.focus()
     const onKey = (e: KeyboardEvent) => {
@@ -43,6 +50,8 @@ export default function Viewer({
     }
     window.addEventListener('keydown', onKey)
     return () => {
+      s.stop()
+      lenis?.start()
       document.documentElement.classList.remove('locked')
       window.removeEventListener('keydown', onKey)
       before?.focus({ preventScroll: true })
@@ -61,7 +70,7 @@ export default function Viewer({
 
   const current = slides[i]
   return createPortal(
-    <div className="viewer" role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div ref={root} className="viewer" role="dialog" aria-modal="true" aria-label={title} style={{ opacity: reducedMotion ? 1 : 0 }} onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="viewer-top">
         <p className="viewer-title">
           {title}

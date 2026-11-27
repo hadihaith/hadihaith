@@ -1,9 +1,13 @@
+import { useEffect } from 'react'
 import PageHead from '../components/PageHead'
 import Portrait from '../components/Portrait'
 import Timeline from '../sections/Timeline'
 import Footer from '../sections/Footer'
 import { Chequer, Contours } from '../components/Shared'
+import { Rise, Split } from '../engine/Reveal'
+import { ROW } from '../engine/spring'
 import { SKILLS, TIMELINE } from '../data'
+import { landed } from '../router'
 
 function Skills() {
   const groups = [
@@ -16,24 +20,24 @@ function Skills() {
       <Chequer carry="dark" className="chequer-skills" />
       <div className="skills-inner">
         <h2 id="skills-title" className="skills-title">
-          <span className="split">what i</span>
+          <Split text="what i" delay={0} />
           <span className="title-last">
-            <span className="split">bring</span>
-            <span className="title-stop">
+            <Split text="bring" delay={130} />
+            <Rise as="span" className="title-stop" delay={240} fadeOnly>
               .
-            </span>
+            </Rise>
           </span>
         </h2>
         <div className="skills-groups">
-          {groups.map((g) => (
+          {groups.map((g, gi) => (
             <div key={g.name} className="skills-group">
-              <p className="eyebrow skills-eyebrow">
+              <Rise as="p" className="eyebrow skills-eyebrow" delay={200 + gi * 120}>
                 {g.name}
-              </p>
+              </Rise>
               <ul>
-                {g.items.map((s) => (
+                {g.items.map((s, i) => (
                   <li key={s}>
-                    <span className="split">{s}</span>
+                    <Split text={s} by="letters" stagger={16} config={ROW} gap="0" delay={260 + gi * 120 + i * 50} />
                   </li>
                 ))}
               </ul>
@@ -47,11 +51,14 @@ function Skills() {
 
 /** The life path, on its own page: Kuwait University to France, then the skills. */
 export default function Journey() {
+  useEffect(() => {
+    landed()
+  }, [])
   return (
     <>
       <PageHead
         title={['the', 'journey']}
-        figure={<Portrait />}
+        figure={<Portrait delay={420} />}
         intro="Kuwait University, teaching, research, a third place in the gulf and a semester in France. Scroll down the path."
         panel={{
           eyebrow: 'so far',

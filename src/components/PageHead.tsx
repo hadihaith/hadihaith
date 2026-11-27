@@ -1,3 +1,5 @@
+import { Rise, Split } from '../engine/Reveal'
+import { FIGURE, REVEAL } from '../engine/spring'
 import Masthead from './Masthead'
 import { Brackets, Contours } from './Shared'
 
@@ -20,32 +22,32 @@ export default function PageHead({ title, intro, panel, longTitle, figure }: Pro
         <Masthead />
         <div className={`page-head-middle${longTitle ? ' page-head-long' : ''}`}>
           <h1 id="page-title" className={`page-title${longTitle ? ' page-title-long' : ''}`}>
-            <span className="split">{title[0]}</span>{' '}
+            <Split text={title[0]} delay={120} mode="once" enabled />
             <span className="title-last">
-              <span className="split">{title[1]}</span>
-              <span className="title-stop">
+              <Split text={title[1]} delay={250} mode="once" enabled />
+              <Rise as="span" className="title-stop" delay={360} fadeOnly enabled>
                 .
-              </span>
+              </Rise>
             </span>
           </h1>
           {figure}
-          <div className="page-head-side">
+          <Rise className="page-head-side" delay={520} y="1.25rem" config={REVEAL} enabled>
             <p className="page-intro">{intro}</p>
             {panel && (
               <div className="bracket-panel page-panel">
                 <Brackets />
                 <p className="eyebrow">{panel.eyebrow}</p>
                 <dl className="hero-stats">
-                  {panel.stats.map((s) => (
+                  {panel.stats.map((s, i) => (
                     <div key={s.label}>
                       <dt>{s.label}</dt>
-                      <dd className="split">{s.value}</dd>
+                      <Split as="dd" text={s.value} by="letters" stagger={26} config={FIGURE} delay={700 + i * 90} enabled />
                     </div>
                   ))}
                 </dl>
               </div>
             )}
-          </div>
+          </Rise>
         </div>
       </div>
       <span id="page-content" tabIndex={-1} />

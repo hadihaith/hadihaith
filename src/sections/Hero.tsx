@@ -1,139 +1,141 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { Rise, Split } from '../engine/Reveal'
+import { FIGURE, REVEAL } from '../engine/spring'
+import { useMedia } from '../engine/hooks'
+import { onScrollFrame, subscribe } from '../engine/ticker'
 import { Brackets, Chamfer } from '../components/Shared'
 import PixelIcon from '../components/PixelIcon'
 import { CERTS, LINKS, PROJECTS } from '../data'
 import Masthead from '../components/Masthead'
-import { url } from '../router'
-import { backpack } from '../pixels'
-import poster from '../media/hero-backpack.webp'
+import { follow, url } from '../router'
+import { backpack, swap } from '../pixels'
 
-const backpackFrames = [backpack]
+const backpackFrames = [backpack, swap(backpack, 'p', 'a')]
 const PLAY_ANCHOR = '#project-ttt'
-const MOTION_QUERY = '(min-width: 1024px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)'
 
-/** The poster is always in the first paint. Only mouse movement over it requests WebGL. */
-function usePointerScene(posterRef: React.RefObject<HTMLImageElement | null>, canvasRef: React.RefObject<HTMLCanvasElement | null>) {
+function Scene({ boxRef }: { boxRef: React.RefObject<HTMLDivElement | null> }) {
+  const canvas = useRef<HTMLCanvasElement>(null)
+  const [failed, setFailed] = useState(false)
+  const reducedMotion = useMedia('(prefers-reduced-motion: reduce)')
+
   useEffect(() => {
-    const image = posterRef.current!
-    const canvas = canvasRef.current!
-    const hero = canvas.closest('section')!
-    const media = window.matchMedia(MOTION_QUERY)
-    let scene: import('./heroScene').HeroScene | undefined
-    let observer: ResizeObserver | undefined
-    let loading = false
-    let failed = false
-    let disposed = false
-    let frame = 0
-    let lastFrameAt = -Infinity
-    let pointerUntil = 0
-    let scrollAt = -Infinity
+    const el = canvas.current
+    if (!el || reducedMotion || failed) return
 
-    const stop = () => {
-      cancelAnimationFrame(frame)
-      frame = 0
-      hero.removeAttribute('data-scene-active')
-    }
-    const pause = () => {
-      pointerUntil = 0
-      stop()
-    }
-    const onScroll = () => {
-      scrollAt = performance.now()
-      if (frame) pause()
-    }
-    const canDraw = () => (
-      media.matches && !document.hidden && performance.now() - scrollAt > 150 && performance.now() < pointerUntil
-    )
-    const animate = (now: number) => {
-      frame = 0
-      if (!scene?.ready || !canDraw()) {
-        stop()
-        return
-      }
-      if (now - lastFrameAt >= 31) {
-        scene.update(now)
-        lastFrameAt = now
-        if (!hero.hasAttribute('data-scene-active')) hero.dataset.sceneActive = ''
-      }
-      frame = requestAnimationFrame(animate)
-    }
-    const kick = () => {
-      if (!frame && scene?.ready && canDraw()) frame = requestAnimationFrame(animate)
-    }
-    const onError = () => {
-      failed = true
-      pause()
-      observer?.disconnect()
-      scene?.dispose()
-      scene = undefined
-    }
-    const loadScene = async () => {
-      loading = true
-      try {
-        const { HeroScene, SUBJECT_TOP, SUBJECT_BOTTOM } = await import('./heroScene')
-        if (disposed || !canDraw()) return
-        const live = new HeroScene(canvas)
-        scene = live
+    let cancelled = false
+    let dispose = () => {}
+    // Let the copy paint before starting GPU setup.
+    const frame = requestAnimationFrame(() => {
+      void import('./heroScene').then(({ HeroScene, PARAMS, SUBJECT_BOTTOM, SUBJECT_TOP }) => {
+        if (cancelled) return
+        const scene = new HeroScene(el)
+        let stopped = false
+        let inView = false
+        let height = 0
+        let unsub: (() => void) | null = null
+
+        const onMove = (e: PointerEvent) => {
+          scene.setPointer((e.clientX / window.innerWidth) * 2 - 1, (e.clientY / window.innerHeight) * 2 - 1)
+        }
+        const sync = () => {
+          const want = scene.ready && !stopped && !document.hidden && inView && window.scrollY < height
+          if (want && !unsub) {
+            unsub = subscribe((time) => scene.update(time), () => scene.frameInterval())
+          } else if (!want && unsub) {
+            unsub()
+            unsub = null
+          }
+          if (want && scene.tier.pointerEnabled) window.addEventListener('pointermove', onMove, { passive: true })
+          else window.removeEventListener('pointermove', onMove)
+        }
+
+        const fail = () => {
+          stopped = true
+          sync()
+          scene.dispose()
+          setFailed(true)
+        }
+        const onLost = () => fail()
+        el.addEventListener('webglcontextlost', onLost)
+        scene.onReady = () => {
+          el.dataset.ready = ''
+          scene.beginRise()
+          sync()
+        }
+        scene.onError = fail
+
+        const container = el.parentElement!
         const fit = () => {
-          const bounds = hero.getBoundingClientRect()
-          const art = image.getBoundingClientRect()
-          if (!bounds.width || !bounds.height || !art.height) return
-          const scale = (art.height / bounds.height) * 1.82 / (SUBJECT_TOP - SUBJECT_BOTTOM)
-          live.resize(bounds.width, bounds.height)
-          live.setFit({
-            x: 2 * (art.left - bounds.left + art.width / 2) / bounds.width - 1,
-            y: 1 - 2 * (art.top - bounds.top + art.height / 2) / bounds.height - (SUBJECT_TOP + SUBJECT_BOTTOM) / 2 * scale,
-            scale,
-          })
+          if (stopped) return
+          const width = container.clientWidth
+          height = container.clientHeight || 1
+          const box = boxRef.current
+          scene.retune()
+          scene.resize(width, height)
+          let y = PARAMS.subjectY
+          let scale = PARAMS.subjectScale
+          if (box?.offsetParent) {
+            const span = SUBJECT_TOP - SUBJECT_BOTTOM
+            const byWidth = (0.86 * box.clientWidth * 2) / (1.02 * height)
+            scale = Math.min((box.clientHeight * 1.8) / (height * span), 1.1, byWidth)
+            const top = box.offsetTop + box.parentElement!.offsetTop
+            const centre = 1 - ((top + box.clientHeight / 2) / height) * 2
+            y = centre - ((SUBJECT_TOP + SUBJECT_BOTTOM) / 2) * scale
+          } else if (width / height < 1.6) {
+            scale = Math.max(0.85, width / height / 1.778)
+          }
+          scene.setFit({ x: 0, y, scale })
+          if (width <= 1279) scene.setParams({ ...PARAMS, bgRevealOpacity: 0, riseDistance: 12, subjectParallax: 0.008 })
+          else scene.setParams(PARAMS)
+          sync()
         }
         fit()
-        observer = new ResizeObserver(fit)
-        observer.observe(hero)
-        observer.observe(image)
-        live.setParams({ introDuration: 0.35, bgRevealOpacity: 0.45 })
-        live.onReady = kick
-        live.onError = onError
-      } catch {
-        if (!disposed) onError()
-      } finally {
-        loading = false
-      }
-    }
-    const onMove = (event: PointerEvent) => {
-      if (event.pointerType !== 'mouse' || !media.matches || failed || performance.now() - scrollAt <= 150) return
-      pointerUntil = performance.now() + 520
-      if (!scene && !loading) void loadScene()
-      if (!scene) return
-      scene.setPointer(2 * event.clientX / window.innerWidth - 1, 2 * event.clientY / window.innerHeight - 1)
-      kick()
-    }
+        const ro = new ResizeObserver(fit)
+        ro.observe(container)
+        if (boxRef.current) ro.observe(boxRef.current)
+        const io = new IntersectionObserver(([entry]) => {
+          inView = entry.isIntersecting
+          sync()
+        })
+        io.observe(container)
+        const offScroll = onScrollFrame(sync)
+        document.addEventListener('visibilitychange', sync)
 
-    image.addEventListener('pointermove', onMove, { passive: true })
-    image.addEventListener('pointerleave', pause)
-    window.addEventListener('scroll', onScroll, { passive: true })
-    document.addEventListener('visibilitychange', pause)
-    media.addEventListener('change', pause)
-    canvas.addEventListener('webglcontextlost', onError)
+        dispose = () => {
+          stopped = true
+          sync()
+          offScroll()
+          ro.disconnect()
+          io.disconnect()
+          document.removeEventListener('visibilitychange', sync)
+          el.removeEventListener('webglcontextlost', onLost)
+          scene.dispose()
+          delete el.dataset.ready
+        }
+      }).catch(() => {
+        if (!cancelled) setFailed(true)
+      })
+    })
     return () => {
-      disposed = true
-      pause()
-      observer?.disconnect()
-      scene?.dispose()
-      image.removeEventListener('pointermove', onMove)
-      image.removeEventListener('pointerleave', pause)
-      window.removeEventListener('scroll', onScroll)
-      document.removeEventListener('visibilitychange', pause)
-      media.removeEventListener('change', pause)
-      canvas.removeEventListener('webglcontextlost', onError)
+      cancelled = true
+      cancelAnimationFrame(frame)
+      dispose()
     }
-  }, [posterRef, canvasRef])
+  }, [boxRef, reducedMotion, failed])
+
+  return (
+    <div className="hero-scene" aria-hidden="true">
+      <canvas ref={canvas} hidden={failed || reducedMotion} />
+      {(failed || reducedMotion) && (
+        <div className="hero-fallback"><PixelIcon frames={backpackFrames} size="100%" playing={false} off="rgb(9 10 11 / 0.08)" /></div>
+      )}
+    </div>
+  )
 }
 
 /* ---------- The block ---------- */
 export default function Hero() {
-  const image = useRef<HTMLImageElement>(null)
-  const canvas = useRef<HTMLCanvasElement>(null)
-  usePointerScene(image, canvas)
+  const box = useRef<HTMLDivElement>(null)
 
   const current = PROJECTS.find((p) => p.id === 'pix')!
   const meta = [
@@ -149,28 +151,29 @@ export default function Hero() {
 
   return (
     <section data-hero className="hero" id="top">
-      <div className="hero-scene" aria-hidden="true"><canvas ref={canvas} /></div>
+      <Scene boxRef={box} />
+      <div className="hero-ramp" aria-hidden="true" />
 
       <div className="hero-column">
         <Masthead />
 
         <div className="hero-middle">
           <div className="identity">
-            <div className="identity-id">
+            <Rise className="identity-id" enabled delay={0} fadeOnly>
               @hadihaith
-            </div>
+            </Rise>
             <h1 className="hero-name"><span>hadi</span>{' '}<span>haidar</span></h1>
             <ul className="identity-meta">
-              {meta.map((m) => (
-                <li key={m.label}>
+              {meta.map((m, i) => (
+                <Rise as="li" key={m.label} enabled delay={90 + i * 45}>
                   {m.icon}
                   <span>{m.label}</span>
-                </li>
+                </Rise>
               ))}
             </ul>
           </div>
 
-          <div className="hero-panels" data-hero-panels="">
+          <Rise className="hero-panels" data-hero-panels="" enabled delay={120} y="1.25rem" config={REVEAL}>
             <div className="bracket-panel">
               <Brackets />
               <p className="eyebrow">current build</p>
@@ -189,27 +192,28 @@ export default function Hero() {
               <Brackets />
               <p className="eyebrow">career stats</p>
               <dl className="hero-stats" data-hero-stats="">
-                {stats.map((s) => (
+                {stats.map((s, i) => (
                   <div key={s.label}>
                     <dt>{s.label}</dt>
-                    <dd className="split">{s.value}</dd>
+                    <Split as="dd" text={s.value} by="letters" stagger={26} config={FIGURE} delay={i * 45} enabled />
                   </div>
                 ))}
               </dl>
             </div>
-          </div>
+          </Rise>
         </div>
 
         <div className="hero-figure" aria-hidden="true">
-          <div className="hero-fit">
-            <img ref={image} className="hero-poster" src={poster} alt="" width={562} height={687} fetchPriority="high" draggable={false} />
-          </div>
+          <div ref={box} className="hero-fit" />
         </div>
 
         <div className="hero-actions">
           <a
             className="trailer"
             href={url(PLAY_ANCHOR)}
+            onClick={(e) => follow(PLAY_ANCHOR, e, {
+              onFound: (card) => card.dispatchEvent(new Event('project:highlight', { bubbles: true })),
+            })}
           >
             <svg viewBox="0 0 32 32" aria-hidden="true">
               <circle cx="16" cy="16" r="15.5" fill="none" stroke="currentColor" />
@@ -220,10 +224,10 @@ export default function Hero() {
               <span className="trailer-time">tic-tac-toe</span>
             </span>
           </a>
-          <Chamfer href={url('#workshop')} label="view projects" w={220} cut={8} variant="solid" className="hero-cta" />
+          <Chamfer href={url('#workshop')} label="view projects" w={220} cut={8} variant="solid" className="hero-cta" onClick={(e) => follow('#workshop', e)} />
           <ul className="socials">
             <li>
-              <a href={url('/gallery')}>gallery</a>
+              <a href={url('/gallery')} onClick={(e) => follow('/gallery', e)}>gallery</a>
             </li>
             <li>
               <a href={LINKS.github} target="_blank" rel="noreferrer">github</a>

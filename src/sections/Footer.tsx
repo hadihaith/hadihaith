@@ -1,8 +1,10 @@
-import { Arrow, Chamfer, Contours, Layer } from '../components/Shared'
+import { Rise, Split } from '../engine/Reveal'
+import { ROW } from '../engine/spring'
+import { Arrow, Chamfer, Contours, Parallax } from '../components/Shared'
 import PixelIcon from '../components/PixelIcon'
 import { LINKS } from '../data'
-import { backpack } from '../pixels'
-import { url } from '../router'
+import { backpack, swap } from '../pixels'
+import { follow, url } from '../router'
 
 const NAV = [
   { label: 'home', href: '/' },
@@ -21,37 +23,38 @@ export default function Footer() {
       </div>
 
       <div className="ft-figure" aria-hidden="true">
-        <Layer className="ft-figure-layer">
+        <Parallax from={60} to={0} start="top_bottom" end="bottom_bottom" className="ft-figure-layer">
           <div className="ft-device">
-            <PixelIcon frames={[backpack]} size="100%" off="rgb(255 255 255 / 0.05)" />
+            <PixelIcon frames={[backpack, swap(backpack, 'p', 'a')]} size="100%" off="rgb(255 255 255 / 0.05)" interval={900} />
           </div>
-        </Layer>
+        </Parallax>
       </div>
 
-      <div className="ft-logo" role="img" aria-label="Hadi Haidar">
+      <Rise className="ft-logo" delay={120} fadeOnly role="img" aria-label="Hadi Haidar">
         <span className="logo-mark">HH</span>
-      </div>
+      </Rise>
 
       <h2 id="footer-title" className="ft-title">
-        <span className="split">keep</span>
+        <Split text="keep" delay={0} />
         <span className="title-last">
-          <span className="split">building</span>
-          <span className="title-stop">
+          <Split text="building" delay={130} />
+          <Rise as="span" className="title-stop" delay={240} fadeOnly>
             .
-          </span>
+          </Rise>
         </span>
       </h2>
 
       <nav className="ft-nav" aria-label="Footer">
         <ul>
-          {NAV.map((l) => (
+          {NAV.map((l, i) => (
             <li key={l.label}>
               <a
                 href={l.href.startsWith('http') ? l.href : url(l.href)}
                 target={l.href.startsWith('http') ? '_blank' : undefined}
                 rel="noreferrer"
+                onClick={(e) => follow(l.href, e)}
               >
-                <span className="split">{l.label}</span>
+                <Split text={l.label} by="letters" stagger={22} config={ROW} gap="0" delay={260 + i * 80} />
                 <span className="ft-nav-arrow">
                   <Arrow />
                 </span>
@@ -61,24 +64,32 @@ export default function Footer() {
         </ul>
       </nav>
 
-      <div className="ft-copy">
+      <Rise className="ft-copy" delay={640}>
         © 2026 Hadi Haidar. Built in Kuwait, deployed by GitHub Actions.
-      </div>
-      <div className="ft-cta-wrap">
+      </Rise>
+      <Rise className="ft-cta-wrap" delay={720}>
         <Chamfer href={LINKS.github} label="github profile" w={275} cut={8.835} variant="hollow" className="ft-cta" external />
-      </div>
-      <ul className="ft-socials">
+      </Rise>
+      <Rise as="ul" className="ft-socials" delay={800}>
         <li className="ft-email"><a href={`mailto:${LINKS.email}`}>{LINKS.email}</a></li>
         <li>
           <a href={LINKS.github} target="_blank" rel="noreferrer">github</a>
         </li>
         <li>
-          <a href={url('/gallery')}>gallery</a>
+          <a href={url('/gallery')} onClick={(e) => follow('/gallery', e)}>gallery</a>
         </li>
         <li>
-          <a href="#top">top</a>
+          <a
+            href="#top"
+            onClick={(e) => {
+              e.preventDefault()
+              window.scrollTo({ top: 0 })
+            }}
+          >
+            top
+          </a>
         </li>
-      </ul>
+      </Rise>
     </section>
   )
 }

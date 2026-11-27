@@ -119,6 +119,9 @@ ul, ol, dl, dd, p, h1, h2, h3 { margin: 0; padding: 0; }
 ul, ol { list-style: none; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-stopped { overflow: hidden; }
 html.locked { position: relative; overflow: hidden; height: 100%; }
 
 .sr-only {
@@ -135,26 +138,15 @@ html.locked { position: relative; overflow: hidden; height: 100%; }
   .socials a, .masthead-garage, .results-more, .ft-socials a, .ttt-reset { min-height: 44px; display: inline-flex; align-items: center; }
 }
 .split { display: flex; flex-wrap: wrap; }
+.split-unit { display: inline-block; white-space: pre; }
 
 /* Mastheads: two authored lines, the full stop its own span. */
 .title-last { display: flex; align-items: baseline; }
 .title-stop { display: inline-block; }
 
 /* ================= Shared pieces ================= */
-.chequer {
-  position: absolute; inset: 0 0 auto; height: clamp(16px, 4vw, 42px); pointer-events: none;
-  background: conic-gradient(var(--check) 25%, transparent 0 50%, var(--check) 0 75%, transparent 0) 0 0 / 42px 42px;
-  mask-image: linear-gradient(#000 20%, transparent);
-}
-.chequer-light { --check: var(--background); }
-.chequer-dark { --check: var(--surface-black); }
-.contours {
-  position: absolute; inset: 0; pointer-events: none;
-  background:
-    radial-gradient(ellipse at 18% -28%, transparent 64%, var(--contour) 64.35%, transparent 64.7%),
-    radial-gradient(ellipse at 110% 43%, transparent 56%, var(--contour) 56.35%, transparent 56.7%),
-    radial-gradient(ellipse at 64% 129%, transparent 61%, var(--contour) 61.35%, transparent 61.7%);
-}
+.chequer { position: absolute; left: 0; right: 0; top: 0; height: 34svh; width: 100%; pointer-events: none; display: block; }
+.contours { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; display: block; }
 .parallax { position: absolute; inset: 0; pointer-events: none; }
 .parallax-inner { position: absolute; left: 0; right: 0; top: 0; height: 100%; }
 .parallax-inner > * { pointer-events: auto; }
@@ -194,6 +186,13 @@ html.locked { position: relative; overflow: hidden; height: 100%; }
 .chamfer:hover .chamfer-label, .chamfer:focus-visible .chamfer-label { color: var(--surface-black); }
 .chamfer:hover .cta-arrow { transform: translateX(0.25rem); }
 
+/* ================= The sticky stack ================= */
+.stack { position: relative; background: var(--surface-black); }
+.stack-layer { position: sticky; top: 0; }
+.stack-inner { transform-origin: center; }
+.stack-shade { position: absolute; inset: 0; background: var(--surface-black); opacity: 0; pointer-events: none; }
+.stack-last { position: relative; z-index: 20; }
+
 /* ================= Hero ================= */
 .hero {
   position: relative; isolation: isolate; min-height: 100lvh; overflow: hidden;
@@ -201,14 +200,12 @@ html.locked { position: relative; overflow: hidden; height: 100%; }
 }
 .hero-scene { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
 .hero-scene canvas { width: 100%; height: 100%; display: block; visibility: hidden; }
-[data-scene-active] .hero-scene canvas { visibility: visible; }
-[data-scene-active] .hero-poster { opacity: 0; }
-.hero-figure { position: absolute; inset: 0; pointer-events: none; }
-.hero-fit {
-  position: absolute; inset: 13% 25% 12% 28%;
-  display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); place-items: center;
-}
-.hero-poster { display: block; width: auto; height: auto; max-width: 100%; max-height: 100%; pointer-events: auto; }
+.hero-scene canvas[data-ready]:not([hidden]) { visibility: visible; }
+.hero-fallback { position: absolute; inset: 0; display: grid; place-items: center; }
+.hero-fallback svg { max-width: 40%; max-height: 70%; opacity: 0.5; }
+.hero-figure { position: absolute; inset: 0; pointer-events: none; display: none; }
+.hero-fit { position: absolute; left: 0; right: 0; bottom: 0; height: calc(100% - 4rem); }
+.hero-ramp { display: none; }
 
 .hero-column {
   position: relative; z-index: 20; min-height: 100lvh;
@@ -295,7 +292,7 @@ html.locked { position: relative; overflow: hidden; height: 100%; }
 .hero-stats dt { font-size: var(--type-eyebrow); text-transform: uppercase; letter-spacing: -0.04em; white-space: nowrap; }
 .hero-stats dd { font-family: var(--font-display); font-weight: 500; font-size: var(--type-heading); line-height: 0.72; letter-spacing: -0.08em; }
 
-.hero-actions { position: relative; margin-top: auto; padding-top: 1rem; display: flex; flex-direction: column; gap: 1rem; }
+.hero-actions { margin-top: auto; padding-top: 1rem; display: flex; flex-direction: column; gap: 1rem; }
 .trailer { display: none; align-items: center; gap: 0.75rem; }
 .trailer svg { width: 2rem; height: 2rem; flex: none; }
 .trailer > span { display: flex; flex-direction: column; gap: 0.375rem; font-size: var(--type-body); text-transform: uppercase; line-height: 0.9; }
@@ -339,17 +336,33 @@ html.locked { position: relative; overflow: hidden; height: 100%; }
   .hero-name { font-size: var(--type-impact); }
   .socials { gap: 3.6875rem; }
 }
+/* Below xl the device is fitted to a box the layout owns, and a ramp keeps the copy legible. */
+@media (max-width: 1279px) {
+  .hero-figure { display: block; }
+  .hero-ramp {
+    display: block; position: absolute; left: 0; right: 0; bottom: 0; height: 22%; z-index: 10; pointer-events: none;
+    background-image: linear-gradient(to bottom,
+      color-mix(in srgb, var(--background) 0%, transparent) 0%,
+      color-mix(in srgb, var(--background) 6%, transparent) 26%,
+      color-mix(in srgb, var(--background) 20%, transparent) 46%,
+      color-mix(in srgb, var(--background) 45%, transparent) 64%,
+      color-mix(in srgb, var(--background) 74%, transparent) 80%,
+      color-mix(in srgb, var(--background) 93%, transparent) 91%,
+      var(--background) 100%);
+  }
+}
 @media (max-width: 1023px) {
   .hero, .hero-column { min-height: 100svh; }
   .hero-figure { position: relative; inset: auto; flex: 1; min-height: clamp(8rem, 32lvh, 20rem); }
   .hero-fit { inset: 0; height: auto; }
-  .hero-poster { max-height: 94%; }
+  .hero-fallback { align-items: end; padding-bottom: 4.5rem; }
+  .hero-fallback svg { max-width: 50%; max-height: clamp(8rem, 28lvh, 17rem); }
 }
 @media (min-width: 640px) and (max-width: 1023px) {
   .hero-figure { min-height: clamp(6rem, 22svh, 15rem); }
 }
 @media (min-width: 1024px) and (max-width: 1279px) {
-  .hero-fit { inset: clamp(9rem, 26vh, 13rem) 31% 5.25rem; }
+  .hero-fit { inset: 4.5rem 31% 5.25rem; height: auto; }
 }
 @media (max-width: 639px) {
   .hero-middle { gap: 0.5rem; }
@@ -363,19 +376,21 @@ html.locked { position: relative; overflow: hidden; height: 100%; }
 }
 .season-frame {
   position: absolute; inset: 0; overflow: hidden;
-  pointer-events: none;
+  mask-image: linear-gradient(to bottom, transparent 0, #000 10%, #000 90%, transparent 100%);
 }
-.season-defs { position: absolute; }
-.season-map { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.season-map-compact { display: none; }
+.season-stage { position: absolute; left: 0; top: 0; width: 1440px; height: 800px; transform-origin: top left; }
+.halftone, .season-trace, .season-map { position: absolute; left: 0; top: 0; width: 1440px; height: 800px; display: block; }
+.season-map { overflow: visible; }
 .map-grid line { stroke: var(--map-grid); stroke-width: 1.2; }
 .map-ring { fill: none; stroke: var(--map-grid); }
 .map-ring-ghost { fill: none; stroke: var(--map-grid-ghost); }
-.map-track { fill: none; stroke: var(--accent); stroke-width: 5.75; stroke-linecap: round; stroke-linejoin: round; }
+.map-track { fill: none; stroke: var(--foreground-on-dark); stroke-width: 5.75; stroke-linecap: round; stroke-linejoin: round; }
+.map-lap { fill: none; stroke: var(--accent); stroke-width: 5.75; stroke-linecap: round; stroke-linejoin: round; }
 .map-label {
   font-family: var(--font-sans); font-size: 11px; text-transform: uppercase; letter-spacing: -0.02em;
-  fill: var(--foreground-on-dark-muted);
+  fill: var(--foreground-on-dark-muted); opacity: 0; transition: opacity var(--duration-plate) var(--ease-plate);
 }
+.map-label.is-lit { opacity: 1; }
 .chequer-season { z-index: 10; }
 
 .season-column {
@@ -448,9 +463,7 @@ html.locked { position: relative; overflow: hidden; height: 100%; }
   }
   .season-column { display: contents; }
   .season-head { order: 1; position: relative; z-index: 20; padding: 12cqw var(--season-gutter) 0; }
-  .season-frame { order: 2; position: relative; inset: auto; aspect-ratio: var(--track-ratio); margin: 2rem 0; }
-  .season-map-wide { display: none; }
-  .season-map-compact { display: block; }
+  .season-frame { order: 2; position: relative; inset: auto; mask-image: none; margin: 2rem 0; }
   .season-foot { order: 3; position: relative; z-index: 20; padding: 0 var(--season-gutter) var(--season-gutter); }
   .results { width: 100%; }
   .plate { margin-top: 1rem; }
@@ -482,10 +495,11 @@ html.locked { position: relative; overflow: hidden; height: 100%; }
 }
 .tl-title .split { justify-content: flex-end; }
 .tl-rail { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); z-index: 10; width: 1.1111cqw; top: var(--rail-top, 0); }
-.tl-rail::before { content: ''; position: absolute; inset: 0 calc(50% - 0.5px); background: repeating-linear-gradient(var(--timeline-rail) 0 5px, transparent 5px 10px); }
+.tl-rail svg { width: 100%; height: 100%; overflow: visible; display: block; }
+.tl-rail-line { stroke: var(--timeline-rail); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .tl-rows { position: relative; }
-.tl-row { position: relative; width: 100%; height: var(--row-height); }
-.tl-plate-box { position: absolute; top: 0; bottom: 0; width: var(--plate-width); }
+.tl-row { position: relative; width: 100%; transition: opacity var(--duration-plate) var(--ease-plate); }
+.tl-plate-box { position: absolute; top: 0; bottom: 0; }
 .tl-right .tl-plate-box { right: var(--gutter); }
 .tl-left .tl-plate-box { left: var(--gutter); }
 .tl-centre .tl-plate-box { left: 50%; transform: translateX(-50%); }
@@ -495,7 +509,7 @@ html.locked { position: relative; overflow: hidden; height: 100%; }
   .tl-plate-fill { transition: transform var(--duration-plate) var(--ease-plate); }
   .tl-plate-box:hover .tl-plate-fill { transform: scale(0.9); }
 }
-.tl-plate-media { position: absolute; left: 0; right: 0; top: -5%; height: 110%; display: grid; place-items: center; }
+.tl-plate-media { position: absolute; left: 0; right: 0; top: -10%; height: 110%; display: grid; place-items: center; }
 .tl-plate-media > svg { width: auto !important; height: 66% !important; aspect-ratio: 1; }
 .tl-plate-outline { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; fill: none; stroke: var(--timeline-outline); stroke-width: 1; overflow: visible; }
 .tl-plate-outline path { vector-effect: non-scaling-stroke; }
@@ -504,6 +518,8 @@ html.locked { position: relative; overflow: hidden; height: 100%; }
   font-family: var(--font-display); font-weight: 700; text-transform: uppercase; line-height: 0.95; color: var(--accent);
   font-size: max(2.5cqw, var(--year-min, 0px)); white-space: nowrap;
 }
+.tl-year-inner { display: block; }
+.tl-year .split { flex-wrap: nowrap; }
 .tl-layer-copy .parallax-inner { display: flex; align-items: center; }
 .tl-copy {
   margin-left: 76.3889cqw; z-index: 20; pointer-events: none;
@@ -511,6 +527,7 @@ html.locked { position: relative; overflow: hidden; height: 100%; }
   font-size: max(1.25cqw, var(--copy-min-size, 0px)); text-transform: uppercase; line-height: 1.1; color: var(--foreground-on-dark);
 }
 .tl-copy strong { font-weight: 700; }
+@media (hover: hover) { .tl-rows:has(.tl-plate-box:hover) .tl-row { transition: opacity var(--duration-plate) var(--ease-plate); } }
 @media (min-width: 640px) { .timeline { --copy-max-w: 26.9444cqw; } }
 @media (max-width: 1023px) {
   .timeline {
@@ -533,7 +550,7 @@ html.locked { position: relative; overflow: hidden; height: 100%; }
   .tl-title { position: static; transform: none; width: auto; justify-content: flex-start; text-align: left; }
   .tl-title .split { justify-content: flex-start; }
   .tl-rows { display: flex; flex-direction: column; gap: 2.5rem; }
-  .tl-row { display: flex; height: auto; flex-direction: column; gap: 0.75rem; }
+  .tl-row { display: flex; flex-direction: column; gap: 0.75rem; }
   .tl-row .parallax, .tl-row .parallax-inner { position: relative; inset: auto; height: auto; transform: none !important; }
   .tl-layer-plate .parallax-inner { width: 82%; }
   .tl-odd .tl-layer-plate .parallax-inner { margin-left: auto; }
@@ -580,12 +597,15 @@ html.locked { position: relative; overflow: hidden; height: 100%; }
   transition: transform var(--duration-normal) var(--ease-plate), box-shadow var(--duration-normal) var(--ease-plate);
 }
 .pc:hover, .pc:focus-within { transform: translateY(-0.375rem); box-shadow: 0 0 0 1px var(--accent) inset, 0 2.25rem 3rem -1.75rem rgb(9 10 11 / 0.6); }
-.pc-slot:target > .pc { box-shadow: 0 0 0 2px var(--accent) inset; }
+.pc.is-flash { animation: pc-flash 1.6s var(--ease-plate); }
+@keyframes pc-flash {
+  0%, 60% { box-shadow: 0 0 0 2px var(--accent) inset, 0 0 0 0.5rem var(--accent-muted), 0 2rem 3rem -1.75rem rgb(9 10 11 / 0.6); }
+}
 .pc-brackets {
   inset: -0.5rem; color: var(--accent); opacity: 0;
   transition: opacity var(--duration-normal) var(--ease-plate), inset var(--duration-normal) var(--ease-plate);
 }
-.pc:hover .pc-brackets, .pc:focus-within .pc-brackets, .pc-slot:target .pc-brackets { opacity: 1; inset: -0.75rem; }
+.pc:hover .pc-brackets, .pc:focus-within .pc-brackets, .pc.is-flash .pc-brackets { opacity: 1; inset: -0.75rem; }
 
 .pc-screen {
   flex: none; aspect-ratio: 16 / 10; padding: 1rem; border-radius: 0.75rem;
@@ -627,6 +647,7 @@ html.locked { position: relative; overflow: hidden; height: 100%; }
 @media (prefers-reduced-motion: reduce) {
   .pc, .pc-brackets { transition: none; }
   .pc:hover, .pc:focus-within { transform: none; }
+  .pc.is-flash { animation: none; }
 }
 @media (pointer: coarse) {
   .pc-link { min-height: 44px; }
@@ -750,3 +771,8 @@ html.locked { position: relative; overflow: hidden; height: 100%; }
   .ft-cta { --cta-h: 50px; }
   .ft-copy { order: 6; }
 }
+
+/* Stand-ins while the lower blocks render on idle. */
+.placeholder-dark { min-height: 100lvh; background: var(--surface-black); }
+@media (max-width: 639px) { .placeholder-dark { min-height: 680px; } }
+.placeholder-light { min-height: 100lvh; background: var(--background); }
