@@ -1,12 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import PageHead from '../components/PageHead'
 import Footer from '../sections/Footer'
 import { Arrow, Chequer } from '../components/Shared'
 import Viewer, { type Slide } from '../components/Viewer'
-import { Rise, Split } from '../engine/Reveal'
 import { CERTS, ISSUERS, type Cert, type Issuer } from '../data'
 import { certImage, logo } from '../media'
-import { landed } from '../router'
 
 /** Issuers in the order they first appear, with how many certificates each gave. */
 const issuers = CERTS.reduce<{ key: Issuer; count: number }[]>((list, c) => {
@@ -36,7 +34,7 @@ function Logo({ from, className }: { from: Issuer; className: string }) {
 
 function CertCard({ cert, index, onView }: { cert: Cert; index: number; onView: () => void }) {
   return (
-    <Rise as="li" className="ct-slot" delay={(index % 3) * 90} y="1.5rem" mode="once">
+    <li className="ct-slot">
       <article className="ct-card">
         <span className="ct-top">
           <Logo from={cert.from} className="ct-logo" />
@@ -57,7 +55,7 @@ function CertCard({ cert, index, onView }: { cert: Cert; index: number; onView: 
           </a>
         </span>
       </article>
-    </Rise>
+    </li>
   )
 }
 
@@ -65,9 +63,6 @@ function CertCard({ cert, index, onView }: { cert: Cert; index: number; onView: 
 export default function Certificates() {
   const [open, setOpen] = useState<number | null>(null)
   const close = useCallback(() => setOpen(null), [])
-  useEffect(() => {
-    landed()
-  }, [])
   return (
     <>
       <PageHead
@@ -87,16 +82,16 @@ export default function Certificates() {
         <Chequer carry="light" className="chequer-certs" />
         <div className="certs-inner">
           <h2 id="certs-title" className="certs-title">
-            <Split text="oldest" delay={0} />
+            <span className="split">oldest</span>
             <span className="title-last">
-              <Split text="first" delay={130} />
-              <Rise as="span" className="title-stop" delay={240} fadeOnly>
+              <span className="split">first</span>
+              <span className="title-stop">
                 .
-              </Rise>
+              </span>
             </span>
           </h2>
 
-          <Rise as="ul" className="ct-issuers" delay={200} aria-label="Issuers">
+          <ul className="ct-issuers" aria-label="Issuers">
             {issuers.map((i) => (
               <li key={i.key}>
                 <Logo from={i.key} className="ct-logo ct-logo-sm" />
@@ -106,7 +101,7 @@ export default function Certificates() {
                 </span>
               </li>
             ))}
-          </Rise>
+          </ul>
 
           <ol className="ct-grid">
             {CERTS.map((c, i) => (

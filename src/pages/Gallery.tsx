@@ -1,12 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import PageHead from '../components/PageHead'
 import Footer from '../sections/Footer'
 import { Chequer } from '../components/Shared'
 import Viewer from '../components/Viewer'
-import { Rise, Split } from '../engine/Reveal'
 import { GALLERY, type GalleryCard } from '../data'
 import { photo } from '../media'
-import { landed } from '../router'
 
 const CARD_SIZES = '(max-width: 639px) calc(100vw - 48px), (max-width: 1023px) 46vw, 24vw'
 const FEATURE_SIZES = [
@@ -14,10 +12,10 @@ const FEATURE_SIZES = [
   '(max-width: 639px) calc(38vw - 19px), (max-width: 1023px) 36vw, 18vw',
 ]
 
-function Card({ card, index, onOpen }: { card: GalleryCard; index: number; onOpen: (start: number) => void }) {
+function Card({ card, onOpen }: { card: GalleryCard; onOpen: (start: number) => void }) {
   const shown = card.feature ? card.photos.slice(0, 3) : card.photos.slice(0, 1)
   return (
-    <Rise as="li" className={`g-card${card.feature ? ' g-feature' : ''}`} delay={index * 90}>
+    <li className={`g-card${card.feature ? ' g-feature' : ''}`}>
       <button type="button" className="g-open" onClick={() => onOpen(0)} aria-label={`Open photos with ${card.title}`}>
         <span className="g-media">
           {shown.map((ph, k) => {
@@ -44,7 +42,7 @@ function Card({ card, index, onOpen }: { card: GalleryCard; index: number; onOpe
         <p className="g-who">{card.who}</p>
         <p className="g-meta">{card.dates}</p>
       </div>
-    </Rise>
+    </li>
   )
 }
 
@@ -52,9 +50,6 @@ function Card({ card, index, onOpen }: { card: GalleryCard; index: number; onOpe
 export default function Gallery() {
   const [open, setOpen] = useState<{ card: GalleryCard; start: number } | null>(null)
   const close = useCallback(() => setOpen(null), [])
-  useEffect(() => {
-    landed()
-  }, [])
   return (
     <>
       <PageHead
@@ -65,17 +60,17 @@ export default function Gallery() {
         <Chequer carry="light" className="chequer-gallery" />
         <div className="gallery-inner">
           <h2 id="gallery-title" className="gallery-title">
-            <Split text="conversations" delay={0} />
+            <span className="split">conversations</span>
             <span className="title-last">
-              <Split text="worth keeping" delay={130} />
-              <Rise as="span" className="title-stop" delay={240} fadeOnly>
+              <span className="split">worth keeping</span>
+              <span className="title-stop">
                 .
-              </Rise>
+              </span>
             </span>
           </h2>
           <ul className="g-grid">
-            {GALLERY.map((card, i) => (
-              <Card key={card.id} card={card} index={i} onOpen={(start) => setOpen({ card, start })} />
+            {GALLERY.map((card) => (
+              <Card key={card.id} card={card} onOpen={(start) => setOpen({ card, start })} />
             ))}
           </ul>
         </div>

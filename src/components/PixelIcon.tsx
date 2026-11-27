@@ -1,92 +1,40 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useId } from 'react'
 import { LED } from '../pixels'
-import { reducedMotion } from '../engine/ticker'
 
 type Props = {
   frames: string[][]
-  /** Rendered size in any CSS length; the SVG is square. */
   size?: string
-  interval?: number
-  playing?: boolean
-  /** Colour of unlit LEDs. */
   off?: string
-  /** Draw a backing plate behind the grid. */
-  plate?: string
   className?: string
   label?: string
 }
 
-const R = 0.36
-/** Every LED of one colour as a single path of circles: a handful of nodes instead of 144. */
-const dots = (cells: [number, number][]) =>
-  cells.map(([x, y]) => `M${x + 0.5 - R} ${y + 0.5}a${R} ${R} 0 1 0 ${R * 2} 0a${R} ${R} 0 1 0 ${-R * 2} 0`).join('')
-
 const cache = new WeakMap<string[], { colour: string; d: string }[]>()
-const paths = (frame: string[]) => {
-  let hit = cache.get(frame)
-  if (hit) return hit
-  const groups = new Map<string, [number, number][]>()
-  frame.forEach((row, y) =>
-    [...row].forEach((ch, x) => {
-      const key = ch === '.' ? '.' : ch
-      if (!groups.has(key)) groups.set(key, [])
-      groups.get(key)!.push([x, y])
-    }),
-  )
-  hit = [...groups].map(([ch, cells]) => ({ colour: ch, d: dots(cells) }))
-  cache.set(frame, hit)
-  return hit
+
+function paths(frame: string[]) {
+  const cached = cache.get(frame)
+  if (cached) return cached
+  const groups = new Map<string, string>()
+  frame.forEach((row, y) => {
+    for (let x = 0; x < row.length; x++) {
+      const colour = LED[row[x]]
+      if (!colour) continue
+      const circle = `M${x}.14 ${y}.5a.36 .36 0 1 0 .72 0a.36 .36 0 1 0 -.72 0`
+      groups.set(colour, (groups.get(colour) ?? '') + circle)
+    }
+  })
+  const result = [...groups].map(([colour, d]) => ({ colour, d }))
+  cache.set(frame, result)
+  return result
 }
 
-/**
- * A small LED screen that flips between pixel-art frames. Frames only flip
- * while the screen is on screen and the tab is visible.
- */
-export default function PixelIcon({
-  frames,
-  size = '4rem',
-  interval = 520,
-  playing = true,
-  off = 'rgb(255 255 255 / 0.08)',
-  plate,
-  className,
-  label,
-}: Props) {
-  const ref = useRef<SVGSVGElement>(null)
-  const [i, setI] = useState(0)
-  const [visible, setVisible] = useState(false)
-  const animate = playing && visible && !reducedMotion && frames.length > 1
-
-  useEffect(() => {
-    const el = ref.current
-    if (!el || frames.length < 2) return
-    const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting))
-    io.observe(el)
-    return () => io.disconnect()
-  }, [frames.length])
-
-  useEffect(() => {
-    if (!animate) return
-    let id = 0
-    const start = () => (id = window.setInterval(() => setI((n) => (n + 1) % frames.length), interval))
-    const onVis = () => {
-      clearInterval(id)
-      if (!document.hidden) start()
-    }
-    start()
-    document.addEventListener('visibilitychange', onVis)
-    return () => {
-      clearInterval(id)
-      document.removeEventListener('visibilitychange', onVis)
-    }
-  }, [animate, frames.length, interval])
-
-  const f = frames[i] ?? frames[0]
-  const n = f.length
-  const layers = useMemo(() => paths(f), [f])
+/** The first pixel-art frame is complete HTML and needs no animation timer. */
+export default function PixelIcon({ frames, size = '4rem', off = 'rgb(255 255 255 / 0.08)', className, label }: Props) {
+  const id = useId()
+  const picture = frames[0]
+  const n = picture.length
   return (
     <svg
-      ref={ref}
       className={className}
       style={{ width: size, height: size, display: 'block' }}
       viewBox={`-0.5 -0.5 ${n + 1} ${n + 1}`}
@@ -94,10 +42,13 @@ export default function PixelIcon({
       aria-label={label}
       aria-hidden={label ? undefined : true}
     >
-      {plate && <rect x={-0.5} y={-0.5} width={n + 1} height={n + 1} rx={1.2} fill={plate} />}
-      {layers.map(({ colour, d }) => (
-        <path key={colour} d={d} fill={colour === '.' ? off : LED[colour] ?? off} />
-      ))}
+      <defs>
+        <pattern id={id} width="1" height="1" patternUnits="userSpaceOnUse">
+          <circle cx=".5" cy=".5" r=".36" fill={off} />
+        </pattern>
+      </defs>
+      <rect width={n} height={n} fill={`url(#${id})`} />
+      {paths(picture).map(({ colour, d }) => <path key={colour} d={d} fill={colour} />)}
     </svg>
   )
 }

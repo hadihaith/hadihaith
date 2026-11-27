@@ -1,5 +1,6 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { defineConfig, type Plugin } from 'vite'
 import preact from '@preact/preset-vite'
 import { PAGE_META, ROUTES, SITE_URL, canonical, type Route } from './src/routes'
@@ -28,8 +29,7 @@ const pageHtml = (html: string, route: Route) => {
 }
 
 /**
- * GitHub Pages has no URL rewrites, so each page gets its own copy of
- * index.html with its own title, description and canonical URL. It is written
+ * Give each prerendered page its own title, description and canonical URL. It is written
  * as both journey.html (so /journey loads without a redirect) and
  * journey/index.html (so /journey/ does too). Any other path falls through
  * to 404.html, the same app, which shows home and asks not to be indexed.
@@ -56,19 +56,18 @@ const routePages = (): Plugin => {
       }
     },
     closeBundle() {
-      const index = readFileSync(join(outDir, 'index.html'), 'utf8')
       for (const route of ROUTES) {
         const preload = pagePreloads.get(route)
-        const html = pageHtml(index, route).replace('</head>', `${preload ? `  ${preload}\n  ` : ''}</head>`)
+        const file = join(outDir, route, 'index.html')
+        const rendered = readFileSync(file, 'utf8')
+        const html = pageHtml(rendered, route).replace('</head>', `${preload ? `  ${preload}\n  ` : ''}</head>`)
+        writeFileSync(file, html)
         if (route === '/') {
-          writeFileSync(join(outDir, 'index.html'), html)
+          writeFileSync(join(outDir, '404.html'), html.replace('<head>', '<head>\n    <meta name="robots" content="noindex" />'))
           continue
         }
         writeFileSync(join(outDir, `${route.slice(1)}.html`), html)
-        mkdirSync(join(outDir, route), { recursive: true })
-        writeFileSync(join(outDir, route, 'index.html'), html)
       }
-      writeFileSync(join(outDir, '404.html'), index.replace('<head>', '<head>\n    <meta name="robots" content="noindex" />'))
       writeFileSync(join(outDir, 'robots.txt'), `User-agent: *\nAllow: /\n\nSitemap: ${SITE_URL}/sitemap.xml\n`)
       const today = new Date().toISOString().slice(0, 10)
       const urls = ROUTES.map((r) => `  <url><loc>${canonical(r)}</loc><lastmod>${today}</lastmod></url>`).join('\n')
@@ -85,7 +84,15 @@ const routePages = (): Plugin => {
 // instead (hadihaith.github.io/hadihaith/ without the domain), build with SITE_BASE=/hadihaith/.
 export default defineConfig(() => ({
   base: process.env.SITE_BASE ?? '/',
-  plugins: [preact(), routePages()],
+  plugins: [preact({
+    prerender: {
+      enabled: true,
+      renderTarget: '#root',
+      prerenderScript: fileURLToPath(new URL('./src/prerender.tsx', import.meta.url)),
+      additionalPrerenderRoutes: ROUTES.filter((route) => route !== '/'),
+      previewMiddlewareEnabled: true,
+    },
+  }), routePages()],
   build: {
     target: 'es2022',
     modulePreload: { polyfill: false },

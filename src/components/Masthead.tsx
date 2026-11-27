@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Rise } from '../engine/Reveal'
-import { ITEM, SHEET, Spring } from '../engine/spring'
-import { lenis } from '../engine/ticker'
 import { LINKS, NAV } from '../data'
-import { follow, url, useRoute } from '../router'
+import { url, useRoute } from '../router'
 
 const isCurrent = (href: string, route: string) => href === route
 
@@ -14,10 +11,7 @@ export function Logo({ onClick }: { onClick?: () => void }) {
       href={url('/')}
       className="logo"
       aria-label="Hadi Haidar, home"
-      onClick={(e) => {
-        onClick?.()
-        follow('/', e)
-      }}
+      onClick={onClick}
     >
       <span className="logo-mark" aria-hidden="true">HH</span>
       <span className="logo-word" aria-hidden="true">hadihaith</span>
@@ -26,14 +20,9 @@ export function Logo({ onClick }: { onClick?: () => void }) {
 }
 
 function Sheet({ onClose }: { onClose: () => void }) {
-  const ref = useRef<HTMLDivElement>(null)
   const close = useRef<HTMLButtonElement>(null)
   const route = useRoute()
   useEffect(() => {
-    const el = ref.current!
-    const s = new Spring(0, SHEET, (v) => (el.style.opacity = String(v)))
-    s.to(1)
-    lenis?.stop()
     document.documentElement.classList.add('locked')
     close.current?.focus()
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
@@ -42,8 +31,6 @@ function Sheet({ onClose }: { onClose: () => void }) {
     window.addEventListener('keydown', onKey)
     mq.addEventListener('change', onMq)
     return () => {
-      s.stop()
-      lenis?.start()
       document.documentElement.classList.remove('locked')
       window.removeEventListener('keydown', onKey)
       mq.removeEventListener('change', onMq)
@@ -51,7 +38,7 @@ function Sheet({ onClose }: { onClose: () => void }) {
   }, [onClose])
   const items = [...NAV, { label: 'github', href: LINKS.github }]
   return createPortal(
-    <div ref={ref} className="sheet" role="dialog" aria-modal="true" aria-label="Menu" style={{ opacity: 0 }}>
+    <div className="sheet" role="dialog" aria-modal="true" aria-label="Menu">
       <div className="sheet-top">
         <Logo onClick={onClose} />
         <button ref={close} type="button" className="sheet-close" aria-label="Close menu" onClick={onClose}>
@@ -61,23 +48,18 @@ function Sheet({ onClose }: { onClose: () => void }) {
       </div>
       <nav className="sheet-nav" aria-label="Primary">
         <ul>
-          {items.map((l, i) => (
-            <Rise as="li" key={l.label} enabled delay={120 + i * 55} config={ITEM} y="0.75rem">
+          {items.map((l) => (
+            <li key={l.label}>
               <a
                 href={l.href.startsWith('http') ? l.href : url(l.href)}
                 aria-current={isCurrent(l.href, route) ? 'page' : undefined}
                 target={l.href.startsWith('http') ? '_blank' : undefined}
                 rel="noreferrer"
-                onClick={(e) => {
-                  if (l.href.startsWith('http')) return
-                  e.preventDefault()
-                  onClose()
-                  requestAnimationFrame(() => follow(l.href))
-                }}
+                onClick={l.href.startsWith('http') ? undefined : onClose}
               >
                 {l.label}
               </a>
-            </Rise>
+            </li>
           ))}
         </ul>
       </nav>
@@ -98,7 +80,7 @@ export default function Masthead() {
           <ul>
             {NAV.map((l) => (
               <li key={l.label}>
-                <a href={url(l.href)} aria-current={isCurrent(l.href, route) ? 'page' : undefined} onClick={(e) => follow(l.href, e)}>
+                <a href={url(l.href)} aria-current={isCurrent(l.href, route) ? 'page' : undefined}>
                   {l.label}
                 </a>
               </li>
