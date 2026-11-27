@@ -1,4 +1,4 @@
-/* Styles for the journey and gallery pages, and the shared pieces they add. */
+/* Styles for the journey, certificates and gallery pages, and the shared pieces they add. */
 
 /* ================= Shared nav state ================= */
 .masthead-nav a[aria-current='page'], .sheet-nav a[aria-current='page'] { color: var(--accent); }
@@ -13,10 +13,12 @@
   line-height: 0.9; font-size: clamp(4.5rem, 13vw, 13rem);
 }
 .page-title .title-stop { color: var(--accent); }
+.page-title-long { font-size: clamp(2.75rem, 12.5vw, 13rem); }
 .page-head-side { width: min(100%, 24rem); display: flex; flex-direction: column; gap: 1.75rem; }
 .page-intro { font-size: var(--type-lead); text-transform: uppercase; line-height: 1.15; }
 .page-panel .hero-stats { display: flex; justify-content: space-between; }
 .page-panel .hero-stats > div { align-items: flex-start; }
+.page-panel .hero-stats .split { flex-wrap: nowrap; }
 #page-content { position: absolute; bottom: 0; }
 @media (max-width: 767px) {
   .page-head-middle { flex-direction: column; align-items: flex-start; padding-top: 3rem; }
@@ -77,6 +79,73 @@
 .skills-group li::before { content: ''; flex: none; width: 0.28em; height: 0.28em; background: var(--accent); }
 .skills-group .split { flex-wrap: nowrap; }
 @media (max-width: 639px) { .skills-groups { grid-template-columns: 1fr; } }
+
+/* ================= Certificates ================= */
+.certs {
+  container-type: inline-size; position: relative; isolation: isolate; overflow: hidden;
+  background: var(--surface-black); color: var(--foreground-on-dark);
+}
+.chequer-certs { z-index: 3; }
+.certs-inner { position: relative; z-index: 2; padding: 12cqw max(2.2222cqw, 24px) 9cqw; }
+.certs-title {
+  display: flex; flex-direction: column; font-family: var(--font-display); font-weight: 700; text-transform: uppercase;
+  line-height: 0.95; color: var(--accent); font-size: max(3.8194cqw, 40px);
+}
+.certs-title .title-stop { color: var(--foreground-on-dark); }
+
+/* The logo tile: white, so every brand reads in its own colours on the dark page. */
+.ct-logo {
+  flex: none; display: grid; place-items: center; width: 4.5rem; height: 4.5rem; padding: 0.6rem;
+  background: #fff; border-radius: 0.875rem; box-shadow: 0 0.75rem 1.5rem -1rem rgb(0 0 0 / 0.8);
+}
+.ct-logo img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.ct-logo-sm { width: 2.75rem; height: 2.75rem; padding: 0.4rem; border-radius: 0.6rem; }
+.ct-logo.ct-logo-wide { width: 10rem; padding-inline: 0.9rem; }
+.ct-logo-sm.ct-logo-wide { width: 6.5rem; padding-inline: 0.55rem; }
+
+.ct-issuers {
+  list-style: none; margin: max(2.5cqw, 1.75rem) 0 max(3.5cqw, 2rem); padding: 1.25rem 0;
+  display: flex; flex-wrap: wrap; gap: 1rem 2.5rem;
+  border-top: 1px solid var(--raw-color-ink-700); border-bottom: 1px solid var(--raw-color-ink-700);
+}
+.ct-issuers li { display: flex; align-items: center; gap: 0.75rem; font-size: 0.875rem; text-transform: uppercase; }
+.ct-issuers b { margin-left: 0.5em; font-weight: 500; color: var(--accent); }
+
+.ct-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; }
+.ct-slot { display: flex; min-width: 0; }
+.ct-card {
+  position: relative; flex: 1; display: flex; flex-direction: column; gap: 1.25rem; min-height: 15rem; padding: 1.25rem;
+  background: var(--surface-dark); color: var(--foreground-on-dark);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 1.25rem), calc(100% - 1.25rem) 100%, 0 100%);
+  box-shadow: 0 0 0 1px var(--raw-color-ink-700) inset;
+  transition: background var(--duration-normal) var(--ease-plate), box-shadow var(--duration-normal) var(--ease-plate);
+}
+.ct-card:hover, .ct-card:focus-within { background: var(--surface-dark-raised); box-shadow: 0 0 0 1px var(--accent) inset; }
+.ct-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.ct-logo { transition: transform var(--duration-normal) var(--ease-plate); }
+.ct-card:hover .ct-logo { transform: rotate(-4deg) scale(1.06); }
+.ct-round { font-size: 0.75rem; text-transform: uppercase; color: var(--accent); }
+.ct-title { margin: 0; font-family: var(--font-display); font-weight: 700; text-transform: uppercase; line-height: 0.95; font-size: 1.75rem; }
+.ct-issuer { margin-top: auto; display: flex; justify-content: space-between; gap: 1rem; font-size: 0.8125rem; text-transform: uppercase; line-height: 1.2; }
+.ct-date { color: var(--foreground-on-dark-muted); white-space: nowrap; }
+.ct-foot { padding-top: 1rem; border-top: 1px solid rgb(255 255 255 / 0.12); display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; }
+.ct-action {
+  display: inline-flex; align-items: center; gap: 0.6em; min-height: 2.5rem; padding: 0 1rem;
+  font: inherit; font-size: 0.8125rem; text-transform: uppercase; white-space: nowrap; cursor: pointer;
+  border: 1px solid var(--accent); background: none; color: var(--accent);
+  transition: background var(--duration-fast) var(--ease-entrance), color var(--duration-fast) var(--ease-entrance);
+}
+.ct-action:hover, .ct-action:focus-visible { background: var(--accent); color: var(--surface-black); outline: none; }
+.ct-verify { border-color: transparent; padding-right: 0; }
+.ct-verify:hover, .ct-verify:focus-visible { background: none; color: var(--foreground-on-dark); }
+.ct-verify:hover .cta-arrow, .ct-verify:focus-visible .cta-arrow { transform: translateX(0.25rem); }
+@media (max-width: 1023px) { .ct-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 639px) {
+  .ct-grid { grid-template-columns: minmax(0, 1fr); }
+  .ct-card { min-height: 0; }
+  .ct-issuers { gap: 0.875rem 1.5rem; }
+}
+@media (prefers-reduced-motion: reduce) { .ct-logo, .ct-card { transition: none; } .ct-card:hover .ct-logo { transform: none; } }
 
 /* ================= Gallery ================= */
 .gallery {
@@ -139,6 +208,8 @@
 .viewer-figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 0.9rem; max-width: 100%; }
 .viewer-figure img { display: block; width: auto; height: auto; max-width: min(100%, 1100px); max-height: calc(100svh - 10rem); object-fit: contain; }
 .viewer-figure figcaption { display: flex; gap: 2rem; justify-content: space-between; width: 100%; font-size: 0.8rem; text-transform: uppercase; }
+.viewer-link { display: inline-flex; align-items: center; gap: 0.6em; color: var(--accent); white-space: nowrap; }
+.viewer-link:hover .cta-arrow { transform: translateX(0.25rem); }
 .viewer-dots { display: flex; gap: 6px; align-items: center; }
 .viewer-dots span { width: 6px; height: 6px; background: var(--foreground-on-dark-faint); transition: background var(--duration-fast) var(--ease-entrance), transform var(--duration-fast) var(--ease-entrance); }
 .viewer-dots span.is-on { background: var(--accent); transform: scale(1.35); }
@@ -153,6 +224,8 @@
 .viewer-next { right: 1rem; }
 @media (max-width: 639px) {
   .viewer { padding: 5rem 1rem 6rem; }
+  .viewer-figure figcaption { flex-wrap: wrap; gap: 0.75rem 1.5rem; }
+  .viewer-figure figcaption > span:first-child { flex-basis: 100%; }
   .viewer-step { top: auto; bottom: 1.25rem; margin-top: 0; }
   .viewer-prev { left: calc(50% - 64px); }
   .viewer-next { right: calc(50% - 64px); }

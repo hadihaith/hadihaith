@@ -4,13 +4,14 @@ import { Arrow, Chamfer, Contours, Parallax } from '../components/Shared'
 import PixelIcon from '../components/PixelIcon'
 import { LINKS } from '../data'
 import { backpack, swap } from '../pixels'
-import { follow } from '../router'
+import { follow, url } from '../router'
 
 const NAV = [
-  { label: 'home', href: '#/' },
+  { label: 'home', href: '/' },
   { label: 'projects', href: '#workshop' },
-  { label: 'journey', href: '#/journey' },
-  { label: 'gallery', href: '#/gallery' },
+  { label: 'journey', href: '/journey' },
+  { label: 'certificates', href: '/certificates' },
+  { label: 'gallery', href: '/gallery' },
   { label: 'github', href: LINKS.github },
 ]
 
@@ -48,7 +49,7 @@ export default function Footer() {
           {NAV.map((l, i) => (
             <li key={l.label}>
               <a
-                href={l.href}
+                href={l.href.startsWith('http') ? l.href : url(l.href)}
                 target={l.href.startsWith('http') ? '_blank' : undefined}
                 rel="noreferrer"
                 onClick={(e) => follow(l.href, e)}
@@ -74,7 +75,7 @@ export default function Footer() {
           <a href={LINKS.github} target="_blank" rel="noreferrer">github</a>
         </li>
         <li>
-          <a href="#/gallery" onClick={(e) => follow('#/gallery', e)}>gallery</a>
+          <a href={url('/gallery')} onClick={(e) => follow('/gallery', e)}>gallery</a>
         </li>
         <li>
           <a

@@ -5,9 +5,13 @@ import { useRoute } from './router'
 // The other pages are their own chunks: the home page never pays for them.
 const Journey = lazy(() => import('./pages/Journey'))
 const Gallery = lazy(() => import('./pages/Gallery'))
+const Certificates = lazy(() => import('./pages/Certificates'))
+
+const PAGES = { '/journey': Journey, '/certificates': Certificates, '/gallery': Gallery }
 
 export default function App() {
   const route = useRoute()
+  const Page = route === '/' ? null : PAGES[route]
 
   useEffect(() => {
     // Above 1920 the root keeps scaling: a rem stays one design pixel of the 1920 band.
@@ -25,10 +29,12 @@ export default function App() {
         Skip to content
       </a>
       <main id="main" tabIndex={-1} key={route}>
-        {route === '/' ? (
-          <Home />
+        {Page ? (
+          <Suspense fallback={<div className="placeholder-light" aria-hidden="true" />}>
+            <Page />
+          </Suspense>
         ) : (
-          <Suspense fallback={<div className="placeholder-light" aria-hidden="true" />}>{route === '/journey' ? <Journey /> : <Gallery />}</Suspense>
+          <Home />
         )}
       </main>
     </>

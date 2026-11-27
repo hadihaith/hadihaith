@@ -4,19 +4,19 @@ import { Rise } from '../engine/Reveal'
 import { ITEM, SHEET, Spring } from '../engine/spring'
 import { lenis } from '../engine/ticker'
 import { LINKS, NAV } from '../data'
-import { follow, useRoute } from '../router'
+import { follow, url, useRoute } from '../router'
 
-const isCurrent = (href: string, route: string) => href.startsWith('#/') && href.slice(1) === route
+const isCurrent = (href: string, route: string) => href === route
 
 export function Logo({ onClick }: { onClick?: () => void }) {
   return (
     <a
-      href="#/"
+      href={url('/')}
       className="logo"
       aria-label="Hadi Haidar, home"
       onClick={(e) => {
         onClick?.()
-        follow('#/', e)
+        follow('/', e)
       }}
     >
       <span className="logo-mark" aria-hidden="true">HH</span>
@@ -64,12 +64,12 @@ function Sheet({ onClose }: { onClose: () => void }) {
           {items.map((l, i) => (
             <Rise as="li" key={l.label} enabled delay={120 + i * 55} config={ITEM} y="0.75rem">
               <a
-                href={l.href}
+                href={l.href.startsWith('http') ? l.href : url(l.href)}
                 aria-current={isCurrent(l.href, route) ? 'page' : undefined}
                 target={l.href.startsWith('http') ? '_blank' : undefined}
                 rel="noreferrer"
                 onClick={(e) => {
-                  if (!l.href.startsWith('#')) return
+                  if (l.href.startsWith('http')) return
                   e.preventDefault()
                   onClose()
                   requestAnimationFrame(() => follow(l.href))
@@ -98,7 +98,7 @@ export default function Masthead({ enabled }: { enabled?: boolean }) {
           <ul>
             {NAV.map((l) => (
               <li key={l.label}>
-                <a href={l.href} aria-current={isCurrent(l.href, route) ? 'page' : undefined} onClick={(e) => follow(l.href, e)}>
+                <a href={url(l.href)} aria-current={isCurrent(l.href, route) ? 'page' : undefined} onClick={(e) => follow(l.href, e)}>
                   {l.label}
                 </a>
               </li>

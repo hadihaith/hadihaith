@@ -1,32 +1,46 @@
 import { useSyncExternalStore } from 'react'
 import { lenis, scrollToHash } from './engine/ticker'
+import { ROUTES, type Route } from './routes'
 
 /**
- * A hash router: `#/journey`, `#/gallery`, and `#/` (or no hash) for home.
- * Hash routes work on GitHub Pages with no server rewrite. Plain `#anchor`
- * links are in-page anchors on the home page, not routes.
+ * A history router with real paths: `/journey`, `/certificates`, `/gallery`
+ * and `/` for home, all under the site's base (`/hadihaith/` on GitHub Pages,
+ * `/` in dev). The build writes a copy of index.html into each route's folder
+ * so every path loads directly. Plain `#anchor` links are sections of home.
  */
-export type Route = '/' | '/journey' | '/gallery'
-const ROUTES: Route[] = ['/', '/journey', '/gallery']
+export type { Route }
+
+/** The site's base path, always with a trailing slash. */
+const BASE = import.meta.env.BASE_URL
+
+/** A site link as a real URL: '/journey' → '/hadihaith/journey', '#season' → '/hadihaith/#season'. */
+export const url = (href: string) => (href.startsWith('/') ? BASE + href.slice(1) : href.startsWith('#') ? BASE + href : href)
 
 const read = (): Route => {
-  const h = location.hash
-  if (!h.startsWith('#/')) return '/'
-  const path = h.slice(1).split('?')[0].replace(/\/$/, '') || '/'
-  return (ROUTES as string[]).includes(path) ? (path as Route) : '/'
+  const path = '/' + location.pathname.slice(BASE.length).replace(/\/+$/, '').replace(/^\/+/, '')
+  return (ROUTES as readonly string[]).includes(path) ? (path as Route) : '/'
 }
 
+// Links from the old hash router (#/journey) still land on the right page.
+const fromOldHash = () => {
+  if (!location.hash.startsWith('#/')) return false
+  history.replaceState(null, '', url(location.hash.slice(1).replace(/\/$/, '') || '/'))
+  return true
+}
+fromOldHash()
+
 let current = read()
-let pendingAnchor: string | null = null
+// Opened at /#workshop: scroll there once home has rendered.
+let pendingAnchor: string | null = location.hash.length > 1 ? location.hash : null
 const listeners = new Set<() => void>()
-window.addEventListener('hashchange', () => {
-  // An in-page anchor on home (#season) is not a route change.
-  if (!location.hash.startsWith('#/') && location.hash.length > 1) return
-  const next = read()
-  if (next === current) return
+const go = (next: Route) => {
+  if (next === current) return false
   current = next
   listeners.forEach((l) => l())
-})
+  return true
+}
+window.addEventListener('popstate', () => go(read()))
+window.addEventListener('hashchange', () => fromOldHash() && go(read()))
 
 export const useRoute = () =>
   useSyncExternalStore(
@@ -47,15 +61,19 @@ export const landed = () => {
   else window.scrollTo(0, 0)
 }
 
+type ClickLike = { preventDefault(): void; metaKey?: boolean; ctrlKey?: boolean; shiftKey?: boolean; altKey?: boolean; button?: number }
+
 /**
- * Follows a site link. Routes change the hash; a home anchor clicked from
- * another page goes home first, then scrolls once home has rendered.
+ * Follows a site link. '/path' links change the route; a '#anchor' clicked
+ * from another page goes home first, then scrolls once home has rendered.
+ * Modified clicks (new tab, new window) are left to the browser.
  */
-export const follow = (href: string, e?: { preventDefault(): void }) => {
-  if (href.startsWith('#/')) {
+export const follow = (href: string, e?: ClickLike) => {
+  if (e && (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || (e.button ?? 0) !== 0)) return
+  if (href.startsWith('/')) {
     e?.preventDefault()
-    if (location.hash !== href) location.hash = href
-    else landed()
+    history.pushState(null, '', url(href))
+    if (!go(read())) landed()
     return
   }
   if (href.startsWith('#')) {
@@ -63,7 +81,8 @@ export const follow = (href: string, e?: { preventDefault(): void }) => {
     if (current === '/') scrollToHash(href)
     else {
       pendingAnchor = href
-      location.hash = '#/'
+      history.pushState(null, '', url('/'))
+      go('/')
     }
   }
 }

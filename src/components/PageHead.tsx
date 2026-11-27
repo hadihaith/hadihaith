@@ -8,10 +8,12 @@ type Props = {
   title: [string, string]
   intro: string
   panel?: { eyebrow: string; stats: { label: string; value: string }[] }
+  /** A long title word: let the title shrink further on phones so it never runs off screen. */
+  longTitle?: boolean
 }
 
 /** The light opening block of the journey and gallery pages, in the hero's language. */
-export default function PageHead({ title, intro, panel }: Props) {
+export default function PageHead({ title, intro, panel, longTitle }: Props) {
   useEffect(() => {
     // Opened directly, there is no hero veil to hand over to: lift the boot veil now.
     document.getElementById('boot-veil')?.remove()
@@ -22,7 +24,7 @@ export default function PageHead({ title, intro, panel }: Props) {
       <div className="page-head-column">
         <Masthead enabled />
         <div className="page-head-middle">
-          <h1 id="page-title" className="page-title">
+          <h1 id="page-title" className={`page-title${longTitle ? ' page-title-long' : ''}`}>
             <Split text={title[0]} delay={120} mode="once" enabled />
             <span className="title-last">
               <Split text={title[1]} delay={250} mode="once" enabled />

@@ -3,8 +3,10 @@ import { Rise, Split } from '../engine/Reveal'
 import { COPY_FAST, REVEAL, Spring, TYPE, easeInOutSine, easeOutCubic, easeOutQuad } from '../engine/spring'
 import { useMedia, useVisibleLoop } from '../engine/hooks'
 import { CAP_30, reducedMotion, subscribe } from '../engine/ticker'
-import { Chequer, readToken } from '../components/Shared'
-import { CERTS, PROJECTS, SEASON_MOMENTS } from '../data'
+import { Arrow, Chequer, readToken } from '../components/Shared'
+import { CERTS, ISSUERS, PROJECTS } from '../data'
+import { logo } from '../media'
+import { follow, url } from '../router'
 import {
   CIRCUIT_MARKERS, CIRCUIT_PATH, CIRCUIT_STEP, CUMULATIVE, getDots, DOT_LATTICE, type DotField, DOT_RADIUS, FLAG, TOTAL, TRACK_BOX, TRACK_D, distanceAtTime,
   type Point,
@@ -520,7 +522,9 @@ function Stage({ sectionRef }: { sectionRef: React.RefObject<HTMLElement | null>
         frame.style.height = ''
         const h = frame.clientHeight
         const s = Math.max(w / 1440, h / 800)
-        stage.style.transform = `translate(${(w - 1440 * s) / 2}px, ${(h - 800 * s) / 2}px) scale(${s})`
+        // Centred, unless that crops the track's right end (squarer windows): then slide left just enough.
+        const x = Math.min((w - 1440 * s) / 2, w - (TRACK_BOX.x + TRACK_BOX.width) * s)
+        stage.style.transform = `translate(${x}px, ${(h - 800 * s) / 2}px) scale(${s})`
       }
     }
     fit()
@@ -583,7 +587,7 @@ function Stage({ sectionRef }: { sectionRef: React.RefObject<HTMLElement | null>
                     dominantBaseline="middle"
                     className={`map-label${i < lit ? ' is-lit' : ''}`}
                   >
-                    {SEASON_MOMENTS[i].label}
+                    {CERTS[i].date} · {CERTS[i].short}
                   </text>
                 </g>
               )
@@ -618,7 +622,7 @@ function Globe() {
 export default function Season() {
   const section = useRef<HTMLElement>(null)
   const rows = [
-    { k: '09', v: 'certificates' },
+    { k: String(CERTS.length).padStart(2, '0'), v: 'certificates' },
     { k: String(PROJECTS.length).padStart(2, '0'), v: 'builds shipped' },
     { k: '3rd', v: 'at ai+x.' },
   ]
@@ -651,22 +655,18 @@ export default function Season() {
 
         <div className="season-foot">
           <Rise className="results" delay={200}>
-            <p className="results-title">certificates, oldest first</p>
-            <ol>
-              {CERTS.map((c, i) => (
-                <li key={c.title}>
-                  <span className="results-round">r{String(i + 1).padStart(2, '0')}</span>
-                  <span className="results-name">
-                    {c.title}
-                    <span className="results-issuer">{c.issuer}</span>
-                  </span>
-                  <span className="results-date">{c.date}</span>
-                  <a className="results-link" href={c.href} target="_blank" rel="noreferrer">
-                    verify<span className="sr-only">: {c.title}</span>
-                  </a>
+            <p className="results-title">{CERTS.length} certificates</p>
+            <ul className="results-logos" aria-label="Issued by">
+              {[...new Set(CERTS.map((c) => c.from))].map((key) => (
+                <li key={key} className={`results-logo${ISSUERS[key].wide ? ' results-logo-wide' : ''}`}>
+                  <img src={logo(ISSUERS[key].logo)} alt={ISSUERS[key].name} loading="lazy" decoding="async" />
                 </li>
               ))}
-            </ol>
+            </ul>
+            <a className="results-more" href={url('/certificates')} onClick={(e) => follow('/certificates', e)}>
+              see them all
+              <Arrow />
+            </a>
           </Rise>
 
           <Rise className="plate" delay={260} config={REVEAL}>

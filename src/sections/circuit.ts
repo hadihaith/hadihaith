@@ -111,14 +111,21 @@ const nearest = (x: number, y: number) => {
   return best
 }
 
-/** The four moments the lap passes; label offsets push the text off the line. */
+/**
+ * The certificates the lap passes, in the order they were earned. Labels sit
+ * off the line: inside the loop on the left, where the copy column is.
+ */
 export const CIRCUIT_MARKERS = (
   [
-    // Inside the loop: to the left it ran into the certificate list.
-    { at: [520, 500], dx: 20, dy: 0, anchor: 'start' },
+    { at: [640, 636], dx: 0, dy: 26, anchor: 'middle' },
+    { at: [521, 515], dx: 20, dy: 0, anchor: 'start' },
+    { at: [610, 412], dx: 14, dy: 24, anchor: 'start' },
     { at: [690, 195], dx: -16, dy: -14, anchor: 'end' },
+    { at: [960, 180], dx: 0, dy: -24, anchor: 'middle' },
     { at: [1300, 240], dx: -20, dy: 0, anchor: 'end' },
+    { at: [1100, 370], dx: -20, dy: 0, anchor: 'end' },
     { at: [1340, 500], dx: -20, dy: 0, anchor: 'end' },
+    { at: [1180, 646], dx: 0, dy: 26, anchor: 'middle' },
   ] as const
 ).map((m) => {
   const i = nearest(m.at[0], m.at[1])

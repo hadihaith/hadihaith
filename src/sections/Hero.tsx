@@ -7,14 +7,14 @@ import { Brackets, Chamfer } from '../components/Shared'
 import PixelIcon from '../components/PixelIcon'
 import { CERTS, LINKS, PROJECTS } from '../data'
 import Masthead from '../components/Masthead'
-import { follow } from '../router'
+import { follow, url } from '../router'
 import { backpack, swap } from '../pixels'
 import { HeroScene, PARAMS, SUBJECT_BOTTOM, SUBJECT_TOP } from './heroScene'
 
-/** Ask the workshop to put a project on its screen, then go there. */
+/** Scroll to a project's card in the workshop and light it up. */
 export const openProject = (id: string) => {
   window.dispatchEvent(new CustomEvent('workshop:select', { detail: id }))
-  scrollToHash('#workshop')
+  scrollToHash(`#project-${id}`)
 }
 
 /* ---------- The loading veil ---------- */
@@ -339,7 +339,7 @@ export default function Hero() {
         <Rise className="hero-actions" enabled={entered} delay={1500} y="1.25rem">
           <a
             className="trailer"
-            href="#workshop"
+            href={url('#workshop')}
             onClick={(e) => {
               e.preventDefault()
               openProject('ttt')
@@ -354,10 +354,10 @@ export default function Hero() {
               <span className="trailer-time">tic-tac-toe</span>
             </span>
           </a>
-          <Chamfer href="#workshop" label="view projects" w={220} cut={8} variant="solid" className="hero-cta" onClick={(e) => follow('#workshop', e)} />
+          <Chamfer href={url('#workshop')} label="view projects" w={220} cut={8} variant="solid" className="hero-cta" onClick={(e) => follow('#workshop', e)} />
           <ul className="socials">
             <li>
-              <a href="#/gallery" onClick={(e) => follow('#/gallery', e)}>gallery</a>
+              <a href={url('/gallery')} onClick={(e) => follow('/gallery', e)}>gallery</a>
             </li>
             <li>
               <a href={LINKS.github} target="_blank" rel="noreferrer">github</a>

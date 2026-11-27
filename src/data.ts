@@ -6,12 +6,13 @@ export const LINKS = {
   github: 'https://github.com/hadihaith',
 }
 
-/** '#/route' links are pages; plain '#anchor' links are sections of the home page. */
+/** '/route' links are pages; plain '#anchor' links are sections of the home page. */
 export const NAV = [
   { label: 'projects', href: '#workshop' },
   { label: 'season', href: '#season' },
-  { label: 'journey', href: '#/journey' },
-  { label: 'gallery', href: '#/gallery' },
+  { label: 'journey', href: '/journey' },
+  { label: 'certificates', href: '/certificates' },
+  { label: 'gallery', href: '/gallery' },
   { label: 'contact', href: '#contact' },
 ]
 
@@ -140,7 +141,7 @@ export const PROJECTS: Project[] = [
     short: 'tictactoe',
     title: 'TicTacToe',
     date: 'playable',
-    report: 'The classic, first written in Python for Codecademy’s CS portfolio. This one runs on the screen beside you, so take a turn.',
+    report: 'The classic, first written in Python for Codecademy’s CS portfolio. This one runs right here on its card, so take a turn.',
     stack: ['Python', 'TypeScript'],
     stats: [
       { label: 'course', value: 'CS', icon: 'flag' },
@@ -154,19 +155,30 @@ export const PROJECTS: Project[] = [
   },
 ]
 
-export type Cert = { title: string; issuer: string; date: string; href: string }
+/** Who issued a certificate. `logo` names a file in src/media/logos; `wide` marks a wordmark that needs a wider tile. */
+export type Issuer = 'harvard' | 'stanford' | 'freecodecamp' | 'codecademy' | 'bloomberg'
+export const ISSUERS: Record<Issuer, { name: string; logo: string; wide?: boolean }> = {
+  harvard: { name: 'Harvard University', logo: 'harvard' },
+  stanford: { name: 'Stanford University', logo: 'stanford' },
+  freecodecamp: { name: 'freeCodeCamp', logo: 'freecodecamp' },
+  codecademy: { name: 'Codecademy', logo: 'codecademy' },
+  bloomberg: { name: 'Bloomberg', logo: 'bloomberg', wide: true },
+}
+
+/** `href` verifies it on the issuer's site; `image` is the copy in src/media/certs; `short` labels it on the season lap. */
+export type Cert = { title: string; short: string; issuer: string; from: Issuer; date: string; href: string; image: string }
 
 // Oldest first: the order they were earned.
 export const CERTS: Cert[] = [
-  { title: 'CS50P: Programming with Python', issuer: 'Harvard CS50', date: 'apr 24', href: 'https://certificates.cs50.io/8a51a41e-0784-45f0-9ed0-1361df23a1ed.pdf?size=letter' },
-  { title: 'Responsive Web Design', issuer: 'freeCodeCamp', date: 'may 24', href: 'https://freecodecamp.org/certification/hadihaith/responsive-web-design' },
-  { title: 'CS106A: Programming Methodology', issuer: 'Stanford Code in Place', date: 'jun 24', href: 'https://codeinplace.stanford.edu/cip4/certificate/yk8404' },
-  { title: 'CS50x: Computer Science', issuer: 'Harvard CS50', date: 'aug 24', href: 'https://cs50.harvard.edu/certificates/5b6b7d17-0ded-41e1-8756-a12066fbbdbb' },
-  { title: 'JS Algorithms & Data Structures', issuer: 'freeCodeCamp', date: 'aug 24', href: 'https://freecodecamp.org/certification/hadihaith/javascript-algorithms-and-data-structures-v8' },
-  { title: 'C++ Fundamentals', issuer: 'Codecademy', date: 'sep 24', href: 'https://www.codecademy.com/profiles/hadihaith/certificates/b74a2390dfc4127fa5d43fe147425ad0' },
-  { title: 'CS50W: Web Programming', issuer: 'Harvard CS50', date: 'jan 25', href: 'https://cs50.harvard.edu/certificates/e8c4467b-a257-4f1b-a890-b43232a11489' },
-  { title: 'ML & Data Foundations for AI', issuer: 'Codecademy', date: 'apr 25', href: 'https://www.codecademy.com/profiles/hadihaith/certificates/5701108f64cd4a02981c161085ccc50e' },
-  { title: 'Bloomberg Finance Fundamentals', issuer: 'Bloomberg', date: 'may 26', href: 'https://portal.bloombergforeducation.com/certificates/wfiELu3wSGLDPoy4Jwhfy3uU' },
+  { title: 'CS50P: Programming with Python', short: 'cs50p', issuer: 'Harvard CS50', from: 'harvard', date: 'apr 24', href: 'https://certificates.cs50.io/8a51a41e-0784-45f0-9ed0-1361df23a1ed.pdf?size=letter', image: 'cs50p' },
+  { title: 'Responsive Web Design', short: 'responsive web design', issuer: 'freeCodeCamp', from: 'freecodecamp', date: 'may 24', href: 'https://freecodecamp.org/certification/hadihaith/responsive-web-design', image: 'responsive-web-design' },
+  { title: 'CS106A: Programming Methodology', short: 'code in place', issuer: 'Stanford Code in Place', from: 'stanford', date: 'jun 24', href: 'https://codeinplace.stanford.edu/cip4/certificate/yk8404', image: 'stanford-cip' },
+  { title: 'CS50x: Computer Science', short: 'cs50x', issuer: 'Harvard CS50', from: 'harvard', date: 'aug 24', href: 'https://cs50.harvard.edu/certificates/5b6b7d17-0ded-41e1-8756-a12066fbbdbb', image: 'cs50x' },
+  { title: 'JS Algorithms & Data Structures', short: 'js algorithms', issuer: 'freeCodeCamp', from: 'freecodecamp', date: 'aug 24', href: 'https://freecodecamp.org/certification/hadihaith/javascript-algorithms-and-data-structures-v8', image: 'js-dsa' },
+  { title: 'C++ Fundamentals', short: 'c++', issuer: 'Codecademy', from: 'codecademy', date: 'sep 24', href: 'https://www.codecademy.com/profiles/hadihaith/certificates/b74a2390dfc4127fa5d43fe147425ad0', image: 'cpp' },
+  { title: 'CS50W: Web Programming', short: 'cs50w', issuer: 'Harvard CS50', from: 'harvard', date: 'jan 25', href: 'https://cs50.harvard.edu/certificates/e8c4467b-a257-4f1b-a890-b43232a11489', image: 'cs50w' },
+  { title: 'ML & Data Foundations for AI', short: 'ml & data for ai', issuer: 'Codecademy', from: 'codecademy', date: 'apr 25', href: 'https://www.codecademy.com/profiles/hadihaith/certificates/5701108f64cd4a02981c161085ccc50e', image: 'data-foundations-ai' },
+  { title: 'Bloomberg Finance Fundamentals', short: 'bloomberg finance', issuer: 'Bloomberg', from: 'bloomberg', date: 'may 26', href: 'https://portal.bloombergforeducation.com/certificates/wfiELu3wSGLDPoy4Jwhfy3uU', image: 'bloomberg-finance' },
 ]
 
 /* ---------- The journey page ---------- */
@@ -273,10 +285,3 @@ export const GALLERY: GalleryCard[] = [
   },
 ]
 
-/** The four moments the lap passes in the season block. */
-export const SEASON_MOMENTS = [
-  { label: 'dec · ai+x, third place' },
-  { label: 'jan · rennes exchange' },
-  { label: 'may · bloomberg finance' },
-  { label: 'nov · pix studio' },
-]
