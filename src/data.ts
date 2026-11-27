@@ -71,8 +71,8 @@ export const PROJECTS: Project[] = [
   },
   {
     id: 'dlc',
-    short: 'dlc portal',
-    title: 'DLC Portal',
+    short: 'dlc website',
+    title: 'DLC Website',
     date: 'django app',
     report:
       'The Dean’s List Council’s website, built end to end while I was its Secretary General: QR-code attendance with per-event secret codes, a live events dashboard, bulk uploads, parking management and exchange applications.',
@@ -83,25 +83,11 @@ export const PROJECTS: Project[] = [
       { label: 'status', value: 'Live', icon: 'trophy' },
       { label: 'database', value: 'PG', icon: 'gauge' },
     ],
-    links: [{ label: 'view source', href: 'https://github.com/hadihaith/DLCwebsite' }],
-    frames: [px.qr, px.qr2],
-  },
-  {
-    id: 'nasa25',
-    short: 'nasa explorer',
-    title: 'NASA image explorer',
-    date: 'oct 2025',
-    report:
-      'Built at NASA Space Apps 2025: a Django app that pulls huge NASA images, cuts them into deep-zoom tiles in the background, and lets people pin labels on what they find.',
-    stack: ['Python', 'Django', 'NASA APIs'],
-    stats: [
-      { label: 'event', value: 'NASA', icon: 'flag' },
-      { label: 'stack', value: '3', icon: 'bars' },
-      { label: 'status', value: 'Done', icon: 'trophy' },
-      { label: 'year', value: '2025', icon: 'gauge' },
+    links: [
+      { label: 'visit the site', href: 'https://www.dlccba.app' },
+      { label: 'source', href: 'https://github.com/hadihaith/DLCwebsite' },
     ],
-    links: [{ label: 'view source', href: 'https://github.com/hadihaith/Nasa-Space-Apps' }],
-    frames: [px.zoom, px.zoom2],
+    frames: [px.qr, px.qr2],
   },
   {
     id: 'salman',
@@ -116,25 +102,11 @@ export const PROJECTS: Project[] = [
       { label: 'status', value: 'Live', icon: 'trophy' },
       { label: 'pages', value: 'Static', icon: 'gauge' },
     ],
-    links: [{ label: 'view source', href: 'https://github.com/hadihaith/SalmanAljazzaf' }],
-    frames: [px.cap, px.cap2],
-  },
-  {
-    id: 'cip',
-    short: 'quiz game',
-    title: 'Programming quiz game',
-    date: 'jun 2024',
-    report:
-      'My Stanford Code in Place final project: a terminal quiz on programming topics with player accounts in SQLite, random questions without repeats, and a bonus round.',
-    stack: ['Python', 'SQLite'],
-    stats: [
-      { label: 'course', value: 'CS106A', icon: 'flag' },
-      { label: 'stack', value: '2', icon: 'bars' },
-      { label: 'status', value: 'Done', icon: 'trophy' },
-      { label: 'max questions', value: '10', icon: 'gauge' },
+    links: [
+      { label: 'visit the site', href: 'https://www.salmanaljazzaf.com' },
+      { label: 'source', href: 'https://github.com/hadihaith/SalmanAljazzaf' },
     ],
-    links: [{ label: 'view source', href: 'https://github.com/hadihaith/Standford-University-Code-In-Place-Project' }],
-    frames: [px.quiz, px.shiftDown(px.quiz)],
+    frames: [px.cap, px.cap2],
   },
   {
     id: 'ttt',

@@ -6,7 +6,7 @@ import TicTacToe from '../components/TicTacToe'
 import { PROJECTS, type Project } from '../data'
 
 /** The opening build and the playable one get a double-width card. */
-const isWide = (p: Project) => p.id === PROJECTS[0].id || Boolean(p.playable)
+const isWide = (p: Project) => p.id === PROJECTS[0].id
 
 function ProjectCard({ project, index, flash }: { project: Project; index: number; flash: boolean }) {
   const [primary, ...rest] = project.links
@@ -99,7 +99,7 @@ export default function Workshop() {
           </span>
         </h2>
         <Rise as="p" className="ws-lede" delay={360}>
-          {PROJECTS.length} builds, from NASA hackathons to a backpack that lights up. The last one is playable.
+          {PROJECTS.length} builds, from a NASA hackathon to a backpack that lights up. The last one is playable.
         </Rise>
       </div>
 

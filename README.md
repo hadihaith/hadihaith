@@ -76,10 +76,8 @@ const hadi = {
 |:---:|---|---|
 | 🛸 | **[Operation: The Great Homecoming](https://github.com/hadihaith/NasaSpaceApps2026)** · [play it](https://nasatrenddetective.vercel.app) | NASA Space Apps 2026. Run climate experiments with an alien crew in Unity, then a web sidekick reads 40 years of NASA data and tells you if the trend is real. |
 | 🎒 | **[Unofficial Pix Studio](https://github.com/hadihaith/pix-backpack)** *(WIP)* | A Kotlin app that sweet-talks a Divoom PIX LED backpack over Bluetooth LE. Pixel art editors incoming. |
-| 🎟️ | **[DLC Portal](https://github.com/hadihaith/DLCwebsite)** | The Dean's List Council site, built end to end: QR attendance with secret codes, live dashboards, parking, exchange apps. |
-| 🔭 | **[NASA image explorer](https://github.com/hadihaith/Nasa-Space-Apps)** | Space Apps 2025. Slices gigantic NASA images into deep-zoom tiles so you can pin labels on the cosmos. |
-| 🎓 | **[Dr. Salman Aljazzaf's site](https://github.com/hadihaith/SalmanAljazzaf)** | A fast static academic site in Astro. |
-| ❓ | **[Programming quiz game](https://github.com/hadihaith/Standford-University-Code-In-Place-Project)** | My Stanford Code in Place finale: SQLite accounts, no repeat questions, bonus round. |
+| 🎟️ | **[DLC Website](https://www.dlccba.app)** · [source](https://github.com/hadihaith/DLCwebsite) | The Dean's List Council site, built end to end: QR attendance with secret codes, live dashboards, parking, exchange apps. |
+| 🎓 | **[Dr. Salman Aljazzaf's site](https://www.salmanaljazzaf.com)** · [source](https://github.com/hadihaith/SalmanAljazzaf) | A fast static academic site in Astro. |
 | ❌⭕ | **[TicTacToe](https://github.com/hadihaith/TicTacToe)** | The classic. There's a playable version [on my site](https://hadihaith.github.io/hadihaith/). It blocks your wins, fair warning. |
 
 <div align="center">

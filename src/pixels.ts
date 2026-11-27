@@ -31,24 +31,6 @@ export const rocket = [
 ]
 export const rocket2 = [...rocket.slice(0, 9), '.....aa.....', '.....pp.....', '....p..p....']
 
-export const zoom = [
-  'w.........w.',
-  '....w.......',
-  '..tttt...w..',
-  '.t....t.....',
-  't..a...t....',
-  't.aaa..t..w.',
-  't..a...t....',
-  '.t....t.....',
-  '..tttttv....',
-  '.......vv...',
-  '........vv..',
-  '.........vv.',
-]
-export const zoom2 = zoom.map((r, i) =>
-  i === 0 ? '.....w......' : i === 1 ? 'w.........w.' : i === 5 ? 't.awa..t....' : r,
-)
-
 export const backpack = [
   '....vvvv....',
   '...v....v...',
@@ -97,21 +79,6 @@ export const cap = [
 export const cap2 = cap.map((r, i) =>
   i >= 4 && i <= 7 ? r.slice(0, 9) + (i === 7 ? '.pp' : '..p') : r,
 )
-
-export const quiz = [
-  '....pppp....',
-  '...pp..pp...',
-  '...pp..pp...',
-  '.......pp...',
-  '......pp....',
-  '.....pp.....',
-  '.....pp.....',
-  '............',
-  '.....pp.....',
-  '.....pp.....',
-  '............',
-  '............',
-]
 
 export const ttt = [
   'p.pvtttv....',
