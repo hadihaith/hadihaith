@@ -9,7 +9,6 @@ const Lower = lazy(() => import('../sections/Lower'))
 /** Home is the projects page: the hero, the season (certificates), the workshop and the footer. */
 export default function Home() {
   useEffect(() => {
-    document.title = 'Hadi Haidar'
     landed()
   }, [])
   return (

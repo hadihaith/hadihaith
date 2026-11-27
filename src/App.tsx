@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect } from 'react'
 import Home from './pages/Home'
 import { useRoute } from './router'
+import { PAGE_META, canonical } from './routes'
 
 // The other pages are their own chunks: the home page never pays for them.
 const Journey = lazy(() => import('./pages/Journey'))
@@ -12,6 +13,14 @@ const PAGES = { '/journey': Journey, '/certificates': Certificates, '/gallery': 
 export default function App() {
   const route = useRoute()
   const Page = route === '/' ? null : PAGES[route]
+
+  // The title, description and canonical URL follow the page, matching what the build wrote into its HTML.
+  useEffect(() => {
+    const meta = PAGE_META[route]
+    document.title = meta.title
+    document.querySelector('meta[name="description"]')?.setAttribute('content', meta.description)
+    document.querySelector('link[rel="canonical"]')?.setAttribute('href', canonical(route))
+  }, [route])
 
   useEffect(() => {
     // Above 1920 the root keeps scaling: a rem stays one design pixel of the 1920 band.

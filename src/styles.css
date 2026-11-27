@@ -560,6 +560,12 @@ html.locked { position: relative; overflow: hidden; height: 100%; }
   .tl-odd .tl-layer-plate .parallax-inner { margin-left: auto; }
   .tl-plate-box { position: relative; inset: auto; transform: none !important; width: 100% !important; aspect-ratio: 710 / 462; left: auto !important; right: auto !important; }
   .tl-copy { margin: 0; width: 100%; }
+  /* The year is a label above its plate here, not stamped over the logo or the faces in the photo. */
+  .tl-layer-plate .parallax-inner { display: flex; flex-direction: column; gap: 0.625rem; }
+  .tl-year { position: static; order: -1; transform: none; font-size: 30px; }
+  .tl-odd .tl-year { align-self: flex-end; }
+  /* No drift inside the short phone plates: the media sits centred and still. */
+  .tl-plate-media { top: -5%; transform: none !important; }
 }
 
 /* ================= Workshop: one card per build ================= */

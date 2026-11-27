@@ -52,7 +52,6 @@ function Skills() {
 /** The life path, on its own page: Kuwait University to France, then the skills. */
 export default function Journey() {
   useEffect(() => {
-    document.title = 'Journey · Hadi Haidar'
     landed()
   }, [])
   return (

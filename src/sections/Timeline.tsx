@@ -73,12 +73,18 @@ function Plate({ entry }: { entry: TimelineEntry }) {
 
 function Year({ text, centre, enabled }: { text: string; centre: boolean; enabled: boolean }) {
   const ref = useRef<HTMLSpanElement>(null)
+  // On phones the year is a label above its plate, not a backdrop behind it: it stays at full strength.
+  const column = useMedia('(max-width: 639px)')
   useEffect(() => {
+    if (column) {
+      if (ref.current) ref.current.style.opacity = ''
+      return
+    }
     if (!enabled || !centre || reducedMotion) return
     const s = new Spring(1, YEAR_SETTLE, (v) => ref.current && (ref.current.style.opacity = String(v)))
     s.to(0.4, 2200)
     return () => s.stop()
-  }, [enabled, centre])
+  }, [enabled, centre, column])
   return (
     <span ref={ref} className="tl-year-inner">
       <Split text={text} by="letters" stagger={26} config={YEAR} enabled={enabled} />

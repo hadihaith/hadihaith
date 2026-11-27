@@ -3,15 +3,61 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Hadi Haidar</title>
-    <meta name="description" content="Hadi Haidar: full-stack engineer at Kuwait University. Builds, certificates and the journey so far." />
+    <!-- Title, description, canonical and the og:/twitter: title, description and url are rewritten
+         per page by the build (vite.config.ts, from src/routes.ts). These are the home page's. -->
+    <title>Hadi Haidar · Full-stack engineer</title>
+    <meta name="description" content="Hadi Haidar, full-stack engineer at Kuwait University. Projects from a NASA Space Apps game to an LED backpack app, certificates from Harvard and Stanford, and the journey so far." />
+    <link rel="canonical" href="https://hadihaidar.tech/" />
+    <meta name="author" content="Hadi Haidar" />
     <meta name="theme-color" content="#f7fafb" />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Hadi Haidar" />
-    <meta property="og:description" content="Full-stack engineer at Kuwait University. Builds, certificates and the journey so far." />
+    <meta property="og:site_name" content="Hadi Haidar" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:title" content="Hadi Haidar · Full-stack engineer" />
+    <meta property="og:description" content="Hadi Haidar, full-stack engineer at Kuwait University. Projects from a NASA Space Apps game to an LED backpack app, certificates from Harvard and Stanford, and the journey so far." />
     <meta property="og:url" content="https://hadihaidar.tech/" />
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:image" content="https://hadihaidar.tech/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Hadi Haidar, full-stack engineer at Kuwait University" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Hadi Haidar · Full-stack engineer" />
+    <meta name="twitter:description" content="Hadi Haidar, full-stack engineer at Kuwait University. Projects from a NASA Space Apps game to an LED backpack app, certificates from Harvard and Stanford, and the journey so far." />
+    <meta name="twitter:image" content="https://hadihaidar.tech/og-image.png" />
+    <meta name="twitter:image:alt" content="Hadi Haidar, full-stack engineer at Kuwait University" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "Hadi Haidar",
+        "url": "https://hadihaidar.tech/",
+        "jobTitle": "Full-stack engineer",
+        "affiliation": { "@type": "CollegeOrUniversity", "name": "Kuwait University" },
+        "address": { "@type": "PostalAddress", "addressCountry": "KW" },
+        "sameAs": ["https://github.com/hadihaith", "https://www.linkedin.com/in/hadihhaidar"]
+      }
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- A page cached from before a deploy points at /assets/ files the deploy removed, and would sit on
+         the loading veil. If one fails to load, reload once: a reload revalidates the page itself. -->
+    <script>
+      addEventListener('error', function (e) {
+        var t = e.target
+        if (!t || (t.tagName !== 'SCRIPT' && t.tagName !== 'LINK') || !/\/assets\//.test(t.src || t.href || '')) return
+        try {
+          if (sessionStorage.getItem('stale-reload')) return
+          sessionStorage.setItem('stale-reload', '1')
+        } catch (_) {
+          return
+        }
+        location.reload()
+      }, true)
+      addEventListener('load', function () {
+        try { sessionStorage.removeItem('stale-reload') } catch (_) {}
+      })
+    </script>
     <!-- Self-hosted, subset variable fonts: no third-party hops, fetched in parallel with the script. -->
     <link rel="preload" href="/src/fonts/oswald.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/src/fonts/space-grotesk.woff2" as="font" type="font/woff2" crossorigin />

@@ -66,7 +66,6 @@ export default function Certificates() {
   const [open, setOpen] = useState<number | null>(null)
   const close = useCallback(() => setOpen(null), [])
   useEffect(() => {
-    document.title = 'Certificates · Hadi Haidar'
     landed()
   }, [])
   return (

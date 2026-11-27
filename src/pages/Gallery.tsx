@@ -47,7 +47,6 @@ export default function Gallery() {
   const [open, setOpen] = useState<{ card: GalleryCard; start: number } | null>(null)
   const close = useCallback(() => setOpen(null), [])
   useEffect(() => {
-    document.title = 'Gallery · Hadi Haidar'
     landed()
   }, [])
   return (
